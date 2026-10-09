@@ -6,6 +6,7 @@
 #   make test       pixel regression test against DOSBox captures
 #   make original   run the original Fritz 2.51 in DOSBox
 #   make unpack     unpack FRITZ2.EXE into build/re/FRITZ2.UNP.EXE
+#   make engine-demo the original FRITZ2.BIN plays itself in a CPU emulator
 #   make clean      remove the CMake build directory
 #
 # Variables: DATA (original files, default dos/fritz251), SCALE (window
@@ -25,9 +26,17 @@ endif
 
 CAPTURE := build/captures/test/main/fritz2_000.png
 
-.PHONY: all build start compare dump test original unpack clean check-data
+.PHONY: all build start compare dump test original unpack clean check-data engine-demo
 
 all: build
+
+VENV := build/venv
+$(VENV)/bin/python:
+	python3 -m venv $(VENV)
+	$(VENV)/bin/pip install -q unicorn capstone
+
+engine-demo: $(VENV)/bin/python check-data
+	$(VENV)/bin/python tools/engine/harness.py $(DATA)/FRITZ2.BIN 4 10
 
 $(BUILD)/CMakeCache.txt:
 	cmake -S . -B $(BUILD) $(CMAKE_FLAGS)

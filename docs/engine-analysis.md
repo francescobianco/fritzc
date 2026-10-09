@@ -42,25 +42,27 @@ space; file offset = address − `0x100`). **[verified]**
 
 | Code | EXE wrapper | Calls in EXE | Engine handler | Meaning |
 |---:|---|---:|---|---|
-| `0x00` | `293b:afb7` | 1 | `0x2775` | ? |
+| `0x00` | `293b:afb7` | 1 | `0x2775` | new game (called by `0000:166a`) **[verified in the harness]** |
 | `0x01` | `293b:afc8` | 1 | `0x277e` | ? |
 | `0x02` | `293b:aeb5` | 13 | `0x27e8` | make a move: `p[0x82]` from, `p[0x83]` to (`8·rank + file − 9`), `p[0x84]` promotion via `DS:7198` **[verified for the encoding]** |
 | `0x03` | `293b:afea` | 3 | `0x2812` | ? |
-| `0x04` | `293b:af13` | 3 | `0x2825` | ? |
+| `0x04` | `293b:af13` | 3 | `0x2825` | search (calls back into the EXE while thinking); the move found is left at `p[0x82]`, `p[0x83]` **[verified]** |
 | `0x05` | `293b:af24` | 1 | `0x283e` | ? |
-| `0x06` | `293b:b061` | 0 | `0x2865` | ? |
+| `0x06` | `293b:affb` (shared) | 1 | `0x2865` | apply the time control: `293b:affb` sets `p[0x9D]` (0 time, 1 fixed depth `p[0x9E]`, 2 …) and `p[0x90]`, `p[0x94]` |
 | `0x07` | `293b:afd9` | 3 | `0x286b` | ? |
 | `0x08` | `293b:af35` | 1 | `0x2871` | ? |
 | `0x09` | `293b:af46` | 1 | `0x2891` | ? |
-| `0x0A` | `293b:af57` | 2 | `0x28a3` | ? |
-| `0x0B` | `293b:af68` | 3 | `0x28a9` | ? |
+| `0x0A` | `293b:af57` | 2 | `0x28a3` | play the move found by the search **[verified]** |
+| `0x0B` | `293b:af68` | 3 | `0x28a9` | game status: 0 on, 1 repetition, 2 fifty-move rule (200 plies), 3 mate, 4 stalemate **[verified for 0 and 3]** |
 | `0x0C` | `293b:af79` | 4 | `0x28e5` | ? |
-| `0x0D` | `293b:af02` | 2 | `0x2906` | ? |
-| `0x0E` | `293b:b070` | 1 | `0x2940` | ? |
-| `0x0F` | `293b:b08f` | 1 | `0x2991` | ? |
+| `0x0D` | `293b:af02` | 2 | `0x2906` | play a prepared move (`[0x50…0x54]`, requires `p[0x9C] & 4`); chosen instead of `0x04` by `19e7:7a24` **[hypothesis: book move]** |
+| `0x0E` | `293b:b070` | 1 | `0x2940` | i-th legal move (`p[0x81]`) with its score in `p[0x64]` |
+| `0x0F` | `293b:b08f` | 1 | `0x2991` | number of legal moves **[verified]** |
 | `0x10` | `293b:b0a0` | 2 | `0x29a2` | ? |
 | `0x11` | `293b:af98` | 2 | `0x29c1` | ? |
 | `0xFF` | `293b:b0bf` | 1 | `0x29d8` | init: callbacks into the EXE at `p[0x86]` (`293b:b110`) and `p[0x8A]` (`293b:b105`), `p[0xFA]` = `[B0FA]`; sizes and allocates the hash table (§4) **[verified]** |
+
+Command 2 returns 1 for an illegal move. **[verified]**
 
 The square encoding of command 2 (`8·rank + file − 9`, rank-major) differs
 from the UI board array (file-major): the engine has its own board
@@ -81,7 +83,20 @@ representation. **[verified for the encoding]**
   block was `0x3800…0x57FF` paragraphs. The port uses `0x4000`.
 - Translated in `src/engine/engine_memory.c`. **[verified]**
 
-## 5. Plan
+## 5. Emulation harness
+
+`tools/engine/harness.py` runs the original module in Unicorn (x86-16),
+exactly as the EXE calls it, with the three services and the callbacks
+emulated (`make engine-demo`). The tick counter `0000:046C` is set by the
+harness, so runs are deterministic. Checked so far: 20 legal moves at the
+start; 20, 19, 30, 0 legal moves and status 3 along f3 e5 g4 Qh4#; illegal
+moves rejected; at depth 4 the engine plays 1.d4 d5 2.e3 e6 3.Nf3 Nf6.
+
+The module is not a child process: the EXE loads it into a memory block,
+calls it with a far call per command, and the module calls the EXE back
+during long searches so that the screen and the keyboard stay alive.
+
+## 6. Plan
 
 1. Name each command from its callers in the EXE (new game, move, take back,
    search, level, hint, …) and from its handler.
