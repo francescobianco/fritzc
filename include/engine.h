@@ -60,4 +60,9 @@ void eng_attacks_build(Engine *e);
    with mask `dx` (the same call adds and removes). */
 void eng_piece_attacks(Engine *e, uint16_t code, uint16_t di, uint16_t dx);
 
+/* 0x8692: static exchange evaluation of the piece on `si` capturing on
+   `di`, side chosen by bit 0x10 of `dx`. Returns AX (AH = gain estimate,
+   AL = attacker balance). */
+uint16_t eng_see(Engine *e, uint16_t si, uint16_t di, uint16_t dx);
+
 #endif

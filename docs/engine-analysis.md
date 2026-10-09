@@ -125,7 +125,13 @@ below `0x2704`). **[verified]**
   `0x79c1`) written as coroutines; for each move `0x7326` makes it
   (`0x8692`), rejects it if the own king is attacked, stores it in the lists
   `0x2218` (from), `0x22B8` (to), `0x2358` (score), `0x23F8` (flags), count
-  ×2 in `[0x640]`, and unmakes it (`0x719e`).
+  ×2 in `[0x640]`, and unmakes it (`0x719e`). The stored score comes from
+  `0x8692`. **[verified for the structure]**
+- `0x8692` is not make-move but a **static exchange evaluation**: balance of
+  attackers and defenders of the target (x-ray pieces included, through the
+  direction tables at `0x82CC` / `0x8404` and the piece ray table `0x81C0`)
+  and the values of the cheapest pieces on each side (`0x8662`); returns
+  the gain estimate in AH. **[verified]**
 
 ## 7. C reconstruction and differential tests
 
@@ -134,11 +140,19 @@ so every C routine can be checked against the original on the same memory
 image: `tests/engine/diff.py` (`make engine-test`) collects states from a
 game played by the original engine in the harness, runs the routine in the
 emulator and in C (`libfritzengine.so` through ctypes) and requires the two
-64 KB images to be identical, apart from the stack area.
+64 KB images to be identical, apart from the stack area. States come from a
+game the original plays at depth 3 and from three random legal games of 60
+plies (fixed seed), 192 in total.
+
+The C engine needs the module's data tables (piece values, direction
+tables, …). As with the interface artwork, they are not copied into the
+repository: the C engine will load the user's `FRITZ2.BIN` image into its
+segment and run its own code on it.
 
 | Original | C | Status |
 |---|---|---|
-| `0x46b7`, `0x46f8`, `0x4380…0x45AA` | `eng_attacks_clear`, `eng_attacks_build`, `eng_piece_attacks` | identical on 17 game states |
+| `0x46b7`, `0x46f8`, `0x4380…0x45AA` | `eng_attacks_clear`, `eng_attacks_build`, `eng_piece_attacks` | identical on 192 states |
+| `0x8692` | `eng_see` | identical: 717 444 calls on 192 states |
 | `0x29d8` hash sizing | `engine_hash_exponent` | translated (§4) |
 
 ## 8. Plan

@@ -11,5 +11,6 @@
 @1000:46f8 attacks_build keep
 @1000:81a3 in_check keep
 @1000:7326 legal_move_callback keep
-@1000:8692 make_move_internal keep
+@1000:8692 see keep
+@1000:6f81 make_move_internal keep
 @1000:719e unmake_move keep
