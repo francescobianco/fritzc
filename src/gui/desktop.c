@@ -87,10 +87,10 @@ static void arrow_buttons(Screen *screen, const Settings *settings, uint8_t colo
    nothing on the start screen; 0a1f:7d72 is board_frame_draw and
    0a1f:78ac(DS:0B8E, DS:048C) is board_draw. Not yet
    translated: the 0a1f:7a98 group (drawn instead
-   of the logo in some states), 0000:31e5 (notation text). 19e7:a994 is
+   of the logo in some states). 19e7:a994 is
    logo_draw; 0000:21c5, 0000:2372, 0000:24ee are in panels.c. */
 void desktop_draw(Screen *screen, const Settings *settings, const Language *lan,
-                  const GameBoard *board, const Logo *logo, const UiState *ui)
+                  const GameBoard *board, const Logo *logo, UiState *ui)
 {
     const Layout *l = &layout_vga;
     uint16_t top = l->menu_bar_height + 1;
@@ -121,8 +121,9 @@ void desktop_draw(Screen *screen, const Settings *settings, const Language *lan,
     if (ui->engine_active & 1)
         book_line_draw(screen, settings, ui);
     notation_panel_draw(screen, settings);
-    /* 0000:31e5 (notation text) is not translated yet. */
+    notation_text_draw(screen, settings, ui);
 
     /* First pass of the main loop 0000:7a39. */
     memory_line_draw(screen, settings, ui);
+    move_input_draw(screen, settings, ui);
 }

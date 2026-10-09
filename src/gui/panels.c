@@ -6,6 +6,7 @@
 #include "ui_text.h"
 
 #include <stdio.h>
+#include <string.h>
 
 /* Colour table entries (DS:0F4C + 2·n). */
 enum {
@@ -159,4 +160,43 @@ void memory_line_draw(Screen *screen, const Settings *settings, const UiState *u
     char text[32];
     snprintf(text, sizeof text, "%ld kB  ", ui->free_memory_kb);
     ui_text_line(screen, settings, text, settings->color_ad6e, 0xac, 0x2e);
+}
+
+/* (ply + parity) / 2 + offset, with long arithmetic as in 0000:9088. */
+static long move_number(const UiState *ui)
+{
+    return ((long)ui->ply + ui->move_parity) / 2 + ui->move_offset;
+}
+
+/* 0a1f:6546: one character at a text column, inverted when the colour
+   equals [B0C6]. */
+static void ui_char(Screen *screen, const Settings *settings, char ch, uint16_t color,
+                    uint16_t y, uint16_t column)
+{
+    char text[2] = {ch, '\0'};
+    ui_text_line(screen, settings, text, color, y, column);
+}
+
+void notation_text_draw(Screen *screen, const Settings *settings, UiState *ui)
+{
+    char text[32] = "";
+    if (!(ui->side_flag & 1))
+        snprintf(text, sizeof text, "%ld. ...", move_number(ui) - 1);   /* DS:7441 */
+    text[15] = '\0';   /* 0000:9a0a limit */
+    clear_text_line(screen, settings, 0x1d, 0xdc, 0x2d);
+    ui_text_line(screen, settings, text, settings->color_ad6e, 0xdc, 0x2f);
+    /* With [B156] > 1 the moves are replayed (0000:1c36, 0000:1a3c): not
+       translated yet. */
+}
+
+void move_input_draw(Screen *screen, const Settings *settings, UiState *ui)
+{
+    char text[32];
+    snprintf(text, sizeof text, "%ld.", move_number(ui));   /* DS:7471 */
+    ui_text_line(screen, settings, text, settings->color_ad6e, 0xdc, 0x2f);
+    ui->input_column = (ui->side_flag & 1) ? 0xf : (int16_t)strlen(text);
+    clear_text_line(screen, settings, 0xb, 0xdc, (uint16_t)(ui->input_column + 0x2f));
+    /* Cursor at the first input position ([047B] == [047D] at start). */
+    ui_char(screen, settings, ' ', settings->color_b0c6, 0xdc,
+            (uint16_t)(ui->input_column + 1 + 0x2e));
 }

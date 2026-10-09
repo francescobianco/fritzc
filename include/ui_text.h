@@ -13,6 +13,10 @@
 void ui_text_line(Screen *screen, const Settings *settings, const char *text,
                   uint16_t color, uint16_t y, uint16_t column);
 
+/* 0a1f:64b5: clears `length` characters with [AD6E]. */
+void clear_text_line(Screen *screen, const Settings *settings, uint8_t length,
+                     uint16_t y, uint16_t column);
+
 /* 0a1f:67c3: same, with string `index` of the messages block (DS:77AE). */
 void ui_message(Screen *screen, const Settings *settings, const Language *lan,
                 uint16_t index, uint16_t color, uint16_t y, uint16_t column);

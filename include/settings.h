@@ -16,6 +16,14 @@ typedef struct Settings {
     uint16_t colors_0f4c[28];    /* DS:0F4C..0F83: colour table */
     char book_dir[71];           /* DS:42BE via 19e7:c408 */
     char book_name[15];          /* DS:4304 via 19e7:c408 */
+    /* Game record read after 0x212 + 0x92 bytes (FRITZ2.PAR 0x2A4..0x2F5). */
+    bool has_game;
+    uint8_t start_board[64];     /* DS:AEF6, file-major like DS:048C */
+    uint8_t side_flag;           /* [B14A] -> [ADB3] */
+    uint8_t castling;            /* [AE6B] */
+    uint8_t show_opening;        /* [AE6A] */
+    int16_t move_offset;         /* [AD7A] */
+    int8_t move_parity;          /* [B160] */
     uint8_t flip_board;          /* [B154] */
     uint8_t swap_colors;         /* [AF40] */
 } Settings;

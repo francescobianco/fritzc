@@ -28,6 +28,12 @@ void status_panel_draw(Screen *screen, const Settings *settings, const Language 
 /* Free memory text written by the main loop 0000:7a39. */
 void memory_line_draw(Screen *screen, const Settings *settings, const UiState *ui);
 
+/* 0000:31e5: notation text (first move number). */
+void notation_text_draw(Screen *screen, const Settings *settings, UiState *ui);
+
+/* Move input field of the main loop: 0000:6a31 and the cursor (0000:7961). */
+void move_input_draw(Screen *screen, const Settings *settings, UiState *ui);
+
 /* 0000:056d: first line of the message box. */
 void message_line_draw(Screen *screen, const Settings *settings, const UiState *ui);
 

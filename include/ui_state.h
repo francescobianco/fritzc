@@ -19,6 +19,10 @@ typedef struct UiState {
     char book_line_left[82];    /* DS:42A8: empty at start */
     char clock_text[2][9];      /* clock widgets DS:6EF4, DS:6F1B */
     int16_t game_number;        /* [ADD4]: 0 = no database game loaded */
+    int16_t ply;                /* [B156]: set to 1 by 0000:1483 */
+    int8_t move_parity;         /* [B160] */
+    int16_t move_offset;        /* [AD7A] */
+    int16_t input_column;       /* [006C]: length of the move prefix */
     /* Shown by the main loop 0000:7a39: largest free DOS block (int 21h/48h,
        0a1f:005c) in kB. The port has no DOS memory, so it shows the value
        the original prints in the reference DOSBox setup. */

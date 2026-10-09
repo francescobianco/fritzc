@@ -202,6 +202,10 @@ Graphics card descriptors: 8 bytes each at `DS:0E10`, selected by
 `0a1f:c4e0` into `[AFAE]`: `(flags, id, ?, default colour)`. VGA is
 `DS:0E28 = (1, 18, 3, 15)`; `FRITZ2.PAR` has id 18. **[verified]**
 
+The file holds three records read in sequence: `0x212` bytes (settings),
+`0x92` bytes (to `DS:ADD8`, not decoded yet) and `0x52` bytes (game state)
+at `0x2A4`.
+
 Known record fields (offsets in the file):
 
 | Offset | Size | Destination | Meaning |
@@ -215,6 +219,15 @@ Known record fields (offsets in the file):
 | `0x196` | 2 | `[B0C6]` | colour (default 0) |
 | `0x198` | 2 | `[B112]` | board frame, second ring (default: descriptor colour) |
 | `0x19A` | 2 | `[AC30]` | board frame (default 0) |
+| `0x13A` | 70 | `DS:42BE` | opening book directory |
+| `0x180` | 14 | `DS:4304` | opening book name |
+| `0x2A6` | 1 | `[AE6A]` | show opening name |
+| `0x2A8` | 1 | `[B14A]` → `[ADB3]` | side flag |
+| `0x2A9` | 1 | `[AE6B]` | castling rights |
+| `0x2AA` | 64 | `DS:AEF6` | start position (board array format) |
+| `0x2EA` | 2+2 | `[AFB0]`, `[B148]` | king squares |
+| `0x2EE` | 2 | `[AD7A]` | move number offset |
+| `0x2F0` | 1 | `[B160]` | move parity |
 | `0x19C` | 56 | `DS:0F4C…0F83` | colour table; entry 1 (`[0F4E]`) is the desktop hatching and the panel shadows (default `DS:0F4C`: 0..15, 10, 11, 12, 14, 15, 15, 0, 15, 0, 15, 0, 15) |
 
 Translated in `src/game/settings.c`.
@@ -280,6 +293,15 @@ All in logical coordinates, x = 398 (`0x18E`), width 272 (`0x110`):
   `FRITZ2.PAR` `0x180` (book directory `0x13A`) via `19e7:c408`.
   **[verified except the size, which needs the book loader]**
 - `0000:24ee` notation panel `0a1f:6356(398, 190, 272, 55)`. **[verified]**
+- `0000:31e5` notation text: clears 29 characters from column 45 and writes
+  `"<n-1>. ..."` (`DS:7441`) at column 47, row 220, with
+  `n = ([B156] + [B160]) / 2 + [AD7A]`. The main loop then runs the move
+  input field `0000:6a31`: `"<n>."` (`DS:7471`) at column 47, `[006C]` =
+  its length, 11 characters cleared after it, and the cursor: a space drawn
+  inverted (`0a1f:6546` with colour `[B0C6]`) at column `[006C] + 47`.
+  **[verified]**
+- Experiment 6 ruled out the XOR fills as the source of the block cursor
+  (see the log).
 - `[005E]` "Fritz active" is toggled by `0000:4c4c`, which also calls
   `344d:0115`: probably the stub towards `FRITZ2.BIN`.
 
@@ -310,6 +332,7 @@ Translated in `src/gui/ui_text.c`. **[verified]**
 | 3 | `FRITZ2.PAR` offsets `0x194` and `0x19E` hold `[AD6E]` and `[0F4E]` | PAR: `0x194=14`, `0x19e=4` (`FRITZ_FILES`) | Confirmed: yellow background and menu bar, red hatching and panel shadows; the port with the same PAR matches the capture in every comparable zone |
 | 4 | `FRITZ2.PAR` offset `0x004` names the language file | PAR: `0x004="FDEUTSCH.LAN"` | Confirmed: German menu bar; the port matches it pixel for pixel |
 | 5 | `FRITZ2.PAR` offset `0x1D4` flips the board | PAR: `0x1d4=1` | Confirmed: white at the top; the port's board matches pixel for pixel |
+| 6 | One of the XOR fills (colour 15) draws the move input cursor | colour 15 → 1…10 in the 10 XOR call sites | Refuted: the cursor stays black; it is an inverted space (`0a1f:6546`) |
 
 ## 13. Reconstructed functions
 
@@ -362,8 +385,8 @@ the DOSBox window has focus.
 
 ## 15. Next steps
 
-1. Notation text and cursor (`0000:31e5`), the square cursor on the
-   board, the book size (opening book loader, `[7190]`).
+1. The square cursor on h3 and the mouse pointer; the book size (opening
+   book loader, `[7190]`).
 2. Decode the remaining `FRITZ2.PAR` fields.
 3. Annotate the Ghidra project with the names of the functions identified so far.
 4. Check whether `FRITZ2.BIN` is the engine: trace how `FRITZ2.EXE` loads it

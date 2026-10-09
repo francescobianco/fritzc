@@ -58,6 +58,13 @@
 0000:056d message_line_draw keep
 0000:7a39 main_loop keep
 19e7:c408 book_set_name keep
+0000:31e5 notation_text_draw keep
+0000:6a31 move_input_init keep
+0a1f:6546 ui_char keep
+0000:9088 long_div keep
+0000:914d long_mul keep
+0000:9a0a pstr_append keep
+0a1f:690d long_to_pstr keep
 0a1f:65bb ui_text_line keep
 0a1f:64b5 ui_clear_text_area keep
 19e7:22ac message_get keep

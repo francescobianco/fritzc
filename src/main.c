@@ -60,7 +60,12 @@ static void render(Screen *screen, const Exe *exe, const Settings *settings,
     if (free_kb >= 0)
         ui.free_memory_kb = free_kb;
 
-    game_board_setup(&board);
+    /* Start position: FRITZ2.PAR game record (0000:1483 copies DS:AEF6),
+       or a new game (0a1f:70ed). */
+    if (settings->has_game)
+        memcpy(board.squares, settings->start_board, sizeof board.squares);
+    else
+        game_board_setup(&board);
     gfx_set_scale(&gfx_scale_vga);
     screen_clear(screen, COLOR_BLACK);
     desktop_draw(screen, settings, lan, &board, logo, &ui);

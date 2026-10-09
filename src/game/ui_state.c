@@ -14,7 +14,11 @@ void ui_state_init(UiState *ui, const Exe *exe, const Settings *settings)
 
     memset(ui, 0, sizeof *ui);
     ui->engine_active = 1;
-    ui->side_flag = 0;
+    ui->side_flag = settings->side_flag;
+    ui->show_opening = settings->show_opening;
+    ui->ply = 1;
+    ui->move_parity = settings->move_parity;
+    ui->move_offset = settings->move_offset;
     ui->hide_marker[0] = 1;
     ui->hide_marker[1] = 1;
     ui->message_busy = 0;

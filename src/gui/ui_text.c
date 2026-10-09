@@ -7,7 +7,7 @@
 #include "layout.h"
 
 /* 0a1f:64b5 */
-static void clear_text_area(Screen *screen, const Settings *settings,
+void clear_text_line(Screen *screen, const Settings *settings,
                             uint8_t length, uint16_t y, uint16_t column)
 {
     const Layout *l = &layout_vga;
@@ -28,7 +28,7 @@ void ui_text_line(Screen *screen, const Settings *settings, const char *text,
     pstring[0] = (uint8_t)n;
 
     uint8_t mode = settings->color_b0c6 == color ? TEXT_INVERSE : 0;
-    clear_text_area(screen, settings, pstring[0], y, column);
+    clear_text_line(screen, settings, pstring[0], y, column);
     gfx_draw_text_p(screen, l->char_width * column, gfx_scale_y(y), l->text_font,
                     pstring, (uint8_t)settings->color_b0c6, mode);
 }

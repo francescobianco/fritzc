@@ -14,6 +14,8 @@ enum {
     PAR_COLORS_0F4C = 0x19c,
     PAR_BOOK_DIR = 0x13a,
     PAR_BOOK_NAME = 0x180,
+    PAR_GAME = 0x212 + 0x92,   /* third read of 19e7:4294 */
+    PAR_GAME_SIZE = 0x52,
     PAR_FLIP_BOARD = 0x1d4,
     PAR_SWAP_COLORS = 0x1d6
 };
@@ -47,6 +49,14 @@ void settings_defaults(Settings *s)
     s->swap_colors = 0;
     s->book_dir[0] = '\0';
     strcpy(s->book_name, "Fritz2");   /* initialised data at DS:4304 */
+    /* New game values of 0000:1438. */
+    s->has_game = false;
+    memset(s->start_board, 0, sizeof s->start_board);
+    s->side_flag = 0;
+    s->castling = 0xf;
+    s->show_opening = 1;
+    s->move_offset = 0;
+    s->move_parity = 1;
     /* With a monochrome descriptor (flags bit 0 clear) 19e7:4294 also sets
        DS:0F6C..0F73 to 15; the VGA descriptor is a colour one. */
     if (!(card_vga[0] & 1))
@@ -54,14 +64,29 @@ void settings_defaults(Settings *s)
             s->colors_0f4c[i] = 15;
 }
 
+static void load_game(Settings *s, const uint8_t *g)
+{
+    /* Offsets in the 0x52-byte record (bp-0x58 in 19e7:4294). */
+    s->show_opening = g[2];
+    s->side_flag = g[4];
+    s->castling = g[5];
+    memcpy(s->start_board, g + 6, 64);
+    s->move_offset = (int16_t)read16(g + 0x4a);
+    s->move_parity = (int8_t)g[0x4c];
+    s->has_game = true;
+}
+
 bool settings_load_par(Settings *s, const char *path)
 {
     uint8_t rec[PAR_RECORD_SIZE];
+    uint8_t game[PAR_GAME_SIZE];
     FILE *f = fopen(path, "rb");
 
     if (!f)
         return false;
     size_t n = fread(rec, 1, sizeof rec, f);
+    bool has_game = fseek(f, PAR_GAME, SEEK_SET) == 0 &&
+                    fread(game, 1, sizeof game, f) == sizeof game;
     fclose(f);
     if (n != sizeof rec || read16(rec) != PAR_MAGIC || read16(rec + 2) != s->card_id)
         return false;
@@ -80,5 +105,7 @@ bool settings_load_par(Settings *s, const char *path)
     s->book_name[14] = '\0';
     s->flip_board = rec[PAR_FLIP_BOARD];
     s->swap_colors = rec[PAR_SWAP_COLORS];
+    if (has_game)
+        load_game(s, game);
     return true;
 }
