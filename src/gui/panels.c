@@ -96,9 +96,8 @@ void clocks_draw(Screen *screen, const Settings *settings, const UiState *ui)
         gfx_draw_text_p(screen, x, row1, l->text_font, marker, ink, 0);
 }
 
-/* The number at column 25 is 1 << p[0xFE], p = [7190] being the engine
-   module block (docs/engine-analysis.md); not available until the engine
-   interface is reconstructed. */
+/* The number at column 25 is the engine hash size in KB, 64 << p[0xFE]
+   (0000:2455..2497), as a Pascal string from 0a1f:690d. */
 void book_line_draw(Screen *screen, const Settings *settings, const UiState *ui)
 {
     const Layout *l = &layout_vga;
@@ -112,6 +111,14 @@ void book_line_draw(Screen *screen, const Settings *settings, const UiState *ui)
     gfx_draw_text(screen, l->char_width + x, y + 1, l->text_font, ui->book_line_left, ink, 0);
     gfx_draw_text(screen, l->char_width * 16 + x, y + 1, l->text_font, ui->book_name, ink, 0);
     message_line_draw(screen, settings, ui);
+    if (ui->hash_exponent >= 0) {
+        uint8_t pstring[16];
+        int n = snprintf((char *)pstring + 1, sizeof pstring - 1, "%ld",
+                         64L << ui->hash_exponent);
+        pstring[0] = (uint8_t)n;
+        gfx_draw_text_p(screen, l->char_width * 0x19 + x, y + 1, l->text_font, pstring,
+                        ink, 0);
+    }
 }
 
 /* The text (built by 19e7:c9f2) is only drawn when [AE6A] & 1. */

@@ -300,10 +300,10 @@ All in logical coordinates, x = 398 (`0x18E`), width 272 (`0x110`):
   (`0000:81a5`). **[verified]**
 - `0000:2372` book line (y 254, only when Fritz is active): left text
   `DS:42A8` (empty at start) at column 1, book name `DS:4304` at column 16,
-  `1 << p[0xFE]` at column 25, where `p` = `[7190]` is the engine module
-  block (see `engine-analysis.md`), not the book. The book name comes from
+  the engine hash size `64 << p[0xFE]` KB at column 25 (`p` = `[7190]`,
+  see `engine-analysis.md`). The book name comes from
   `FRITZ2.PAR` `0x180` (book directory `0x13A`) via `19e7:c408`.
-  **[verified except that number]**
+  **[verified]**
 - `0000:24ee` notation panel `0a1f:6356(398, 190, 272, 55)`. **[verified]**
 - `0000:31e5` notation text: clears 29 characters from column 45 and writes
   `"<n-1>. ..."` (`DS:7441`) at column 47, row 220, with
@@ -314,8 +314,7 @@ All in logical coordinates, x = 398 (`0x18E`), width 272 (`0x110`):
   **[verified]**
 - Experiment 6 ruled out the XOR fills as the source of the block cursor
   (see the log).
-- `[005E]` "Fritz active" is toggled by `0000:4c4c`, which also calls
-  `344d:0115`: probably the stub towards `FRITZ2.BIN`.
+- `[005E]` "Fritz active" is toggled by `0000:4c4c`.
 
 ## 11. Language files (`*.LAN`)
 
@@ -397,10 +396,7 @@ the DOSBox window has focus.
 
 ## 15. Next steps
 
-1. The number on the book line: it is `1 << engine[0xFE]`, a value of the
-   engine module (see `engine-analysis.md`), the only part of the start
-   screen still missing.
-2. Menus (F1–F6), keyboard and mouse clicks in the main loop `0000:7a39`.
+1. Menus (F1–F6), keyboard and mouse clicks in the main loop `0000:7a39`.
 2. Decode the remaining `FRITZ2.PAR` fields.
 3. Annotate the Ghidra project with the names of the functions identified so far.
 4. Check whether `FRITZ2.BIN` is the engine: trace how `FRITZ2.EXE` loads it

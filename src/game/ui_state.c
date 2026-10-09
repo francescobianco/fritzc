@@ -2,6 +2,8 @@
 
 #include <string.h>
 
+#include "engine_memory.h"
+
 static void copy_string(char *dst, size_t size, const char *src)
 {
     strncpy(dst, src, size - 1);
@@ -24,6 +26,8 @@ void ui_state_init(UiState *ui, const Exe *exe, const Settings *settings)
     ui->message_busy = 0;
     ui->game_number = 0;
     ui->free_memory_kb = 105;
+    EngineMemory mem = {false, 3, 15360, ENGINE_DEFAULT_LARGEST_PARAGRAPHS};
+    ui->hash_exponent = engine_hash_exponent(&mem);
     copy_string(ui->book_dir, sizeof ui->book_dir, settings->book_dir);
     copy_string(ui->book_name, sizeof ui->book_name, settings->book_name);
     for (int i = 0; i < 2; i++) {

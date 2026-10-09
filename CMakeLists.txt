@@ -32,6 +32,7 @@ add_executable(fritz
     src/gui/panels.c
     src/gui/mouse.c
     src/game/ui_state.c
+    src/engine/engine_memory.c
     src/game/game_board.c
     src/gui/ui_text.c
     src/game/language.c

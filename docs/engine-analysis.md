@@ -26,10 +26,17 @@ space; file offset = address − `0x100`). **[verified]**
 - A command writes its code to `p + 0x80` and its arguments from
   `p + 0x82`. Results are read back from the same block. **[verified for
   command 2]**
-- `[005E]` "Fritz active" is toggled by `0000:4c4c`, which calls
-  `344d:0115` (likely the loader of the module). **[hypothesis]**
-- `p + 0xFE` is shown by the book line as `1 << p[0xFE]` ("128" at start):
-  probably the hash table size in KB. **[hypothesis]**
+- Loader `19e7:38c6`: opens `FRITZ2.BIN`, allocates `(size + 0x10F) / 16`
+  paragraphs, reads the file at `block:0x100`, calls `SetEngine`, clears
+  `p[0xF0…0xFC]`, installs the `int 15h` handler (`344d:0075`) and sends
+  command `0xFF` (init). If `p[0x81] != 0` it shows message `0x48` and gives
+  up. Then it opens the opening book. **[verified]**
+- Segment `344d` (0x170 bytes) is not the engine: it is an `int 15h`
+  handler for extended memory block moves (A20 through the keyboard
+  controller, 32-bit protected-mode copy); `344d:0115` restores the vector.
+  **[verified]**
+- `p[0xFE]`: hash size exponent; the book line shows `64 << p[0xFE]` KB
+  ("128" at start). **[verified]**
 
 ## 3. Commands
 
@@ -53,20 +60,33 @@ space; file offset = address − `0x100`). **[verified]**
 | `0x0F` | `293b:b08f` | 1 | `0x2991` | ? |
 | `0x10` | `293b:b0a0` | 2 | `0x29a2` | ? |
 | `0x11` | `293b:af98` | 2 | `0x29c1` | ? |
-| `0xFF` | `293b:b0bf` | 1 | `0x29d8` | ? |
+| `0xFF` | `293b:b0bf` | 1 | `0x29d8` | init: callbacks into the EXE at `p[0x86]` (`293b:b110`) and `p[0x8A]` (`293b:b105`), `p[0xFA]` = `[B0FA]`; sizes and allocates the hash table (§4) **[verified]** |
 
 The square encoding of command 2 (`8·rank + file − 9`, rank-major) differs
 from the UI board array (file-major): the engine has its own board
 representation. **[verified for the encoding]**
 
-## 4. Plan
+## 4. Hash table sizing (command `0xFF`)
 
-1. Find the loader (`344d:0115`?) and how the 64 KB block is allocated and
-   initialised; fill `p + 0xFE` (book line size).
-2. Name each command from its callers in the EXE (new game, move, take back,
+- `[B0FA]` = 1 only with the `/X` command-line switch (`19e7:3b28`), and is
+  reset when the CPU check `293b:ad79` fails or an XMS driver answers
+  `int 2Fh/4300h` (`293b:ae77`).
+- With `p[0xFA]` set and a 286+ (`0x2ddc` ≥ 2): `n = (int 15h/88h KB) / 64`,
+  `p[0xFE] = floor(log2 n)`, hash in extended memory.
+- Otherwise: `b` = largest free DOS block (paragraphs). `b <= 0x1000` →
+  refuse (`p[0x81] = 0xFF`, every command disabled). Else `b - 0x1800` if
+  `b > 0x2800`, otherwise `0x1000`; `n = b >> 12`;
+  `p[0xFE] = floor(log2 n)`; allocates `1 << (p[0xFE] + 12)` paragraphs.
+- The reference DOSBox run shows 128 KB, so `p[0xFE] = 1` and the largest
+  block was `0x3800…0x57FF` paragraphs. The port uses `0x4000`.
+- Translated in `src/engine/engine_memory.c`. **[verified]**
+
+## 5. Plan
+
+1. Name each command from its callers in the EXE (new game, move, take back,
    search, level, hint, …) and from its handler.
-3. Load `FRITZ2.BIN` into Ghidra as a raw x86-16 binary at `0x100` and map
+2. Load `FRITZ2.BIN` into Ghidra as a raw x86-16 binary at `0x100` and map
    the board representation, move generation, evaluation and search.
-4. Build a harness that runs the original module on chosen positions (in
+3. Build a harness that runs the original module on chosen positions (in
    DOSBox via a small driver, or in a CPU emulator), to compare the C
    reimplementation command by command (IDEA.md §8.1).

@@ -51,9 +51,8 @@ capture() {  # NAME PAR
     fi
 }
 
-# The whole screen is reconstructed except the number at the right of the
-# book line (x 554-595, y 348-363), a value of the engine module.
-REGIONS="0,0,640,348 0,348,554,364 596,348,640,364 0,364,640,480"
+# The whole start screen is reconstructed.
+REGIONS="0,0,640,480"
 
 status=0
 for case in main:$root/dos/fritz251/FRITZ2.PAR exp-colours:$exp_par exp-deutsch:$de_par \

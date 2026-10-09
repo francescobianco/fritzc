@@ -27,6 +27,7 @@ typedef struct UiState {
        0a1f:005c) in kB. The port has no DOS memory, so it shows the value
        the original prints in the reference DOSBox setup. */
     long free_memory_kb;
+    int hash_exponent;          /* engine p[0xFE], -1 if not started */
 } UiState;
 
 /* Start-screen state; clock strings come from the widgets' initial data. */

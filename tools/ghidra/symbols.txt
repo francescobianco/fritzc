@@ -85,3 +85,5 @@
 293b:ae86 engine_set pascal p_off p_seg
 293b:aea8 engine_call keep
 293b:aeb5 engine_make_move pascal move
+19e7:38c6 engine_load keep
+293b:b0bf engine_init pascal ext_flag
