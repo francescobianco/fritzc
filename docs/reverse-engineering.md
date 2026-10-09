@@ -165,6 +165,19 @@ at `DS:6FA1…6FDD`, indexed by `[DS:6F58]`. **[verified]**
   square 40×40), `DS:0B9C…` ← `DS:7498`, `DS:0BAA…` ← `DS:73CC`
   (menu bar height 14), `DS:0BB0…` ← `DS:74A6`. Translated in
   `src/gui/layout.c`. **[verified]**
+- **Text.** `293b:9fb1` DrawTextP(x, y, font, pstring, colour, mode)
+  (length-prefixed string) and `293b:a044` DrawText(…) (zero-terminated).
+  Fixed 8-pixel advance. VGA glyph driver `293b:a0ce`: each glyph row is
+  shifted by `x & 7` and used as the bit mask, so zero bits are
+  transparent. `mode` (`[715A]`): bit 0 bold (`b | b>>1`), bit 1 underline
+  (last row full), bit 3 halftone (`& 0xAA/0x55` by row parity), bit 2
+  halftone every third row, bit 4 inverse. **[verified for mode 0]**
+- **Fonts.** Table `DS:714F` → 4-byte descriptors (data offset in segment
+  `293b`, rows, bytes per glyph): font 0 8×14 at `293b:2D6A`, font 1 8×8 at
+  `293b:3B6A`, font 2 8×14 at `293b:436A`, "font" 3 at `293b:516A` (14-byte
+  graphic tiles: panel arrows and more, probably the pieces). Code page 437
+  with ChessBase figurines at `0xB0…`. The port reads them from the user's
+  `FRITZ2.EXE` (`src/assets/exe.c` unpacks it in memory). **[verified]**
 - **Patterns** `DS:7023` → eight 8×8 masks at `DS:7033…706A`; number 1
   (`88 22…`) is the desktop background. **[verified by patch]**
 
@@ -197,15 +210,34 @@ Known record fields (offsets in the file):
 
 Translated in `src/game/settings.c`.
 
-## 8. Experiment log
+## 8. Language files (`*.LAN`)
+
+Read block by block by `19e7:b0c4`. Header: word directory offset (`0x42`),
+word `0x4D2`, word block count (36). Directory: one dword file offset per
+block. Block: word header size (10), word `0x4D2`, word block number, word
+string count, word data size, then one word offset per string (relative to
+the string data) and the zero-terminated strings, copied into a 12 KB pool
+at `DS:7AD8`. `19e7:2354` loads block `0x1A` (106 strings) into the pointer
+table `DS:77AE`, plus blocks `0x17`, `0x18`, `0x19`. String `0x1A/0x1C` is
+the menu bar. **[verified]** Translated in `src/game/language.c`.
+
+UI text helpers: `0a1f:67c3(n, colour, y, column)` takes message `n`
+(`19e7:22ac`, copied to a Pascal string by `293b:1dee`) and calls
+`0a1f:65bb`, which clears the area with `[AD6E]` (`0a1f:64b5`: 8 px per
+character, `[0BAC]` rows) and draws the text in `[B0C6]` at
+`x = 8·column`, `y = sy(y)`, inverted when `colour == [B0C6]`.
+Translated in `src/gui/ui_text.c`. **[verified]**
+
+## 9. Experiment log
 
 | # | Hypothesis | Patch | Result |
 |---|---|---|---|
 | 1 | The unpacked EXE is equivalent to the original | none (`FRITZ_EXE=FRITZ2.UNP.EXE`) | Confirmed: identical screen except the memory indicator |
 | 2 | `DS:703B` is the desktop pattern | `DS:703b=ff00ff00ff00ff00` | Confirmed: the background turns into horizontal blue and white stripes |
 | 3 | `FRITZ2.PAR` offsets `0x194` and `0x19E` hold `[AD6E]` and `[0F4E]` | PAR: `0x194=14`, `0x19e=4` (`FRITZ_FILES`) | Confirmed: yellow background and menu bar, red hatching and panel shadows; the port with the same PAR matches the capture in every comparable zone |
+| 4 | `FRITZ2.PAR` offset `0x004` names the language file | PAR: `0x004="FDEUTSCH.LAN"` | Confirmed: German menu bar; the port matches it pixel for pixel |
 
-## 9. Reconstructed functions
+## 10. Reconstructed functions
 
 | Original | C | Status |
 |---|---|---|
@@ -214,14 +246,18 @@ Translated in `src/game/settings.c`.
 | `293b:9ab2`, `293b:9cd4`, `293b:95db`, `293b:aad3` | `gfx_hline`, `gfx_vline`, `gfx_draw_rect`, `gfx_scale_line` | complete for VGA |
 | `0000:2512` up to the call of `0000:05f3` | `desktop_draw` | complete; the calls after `05f3` (board, panels, menu) are missing |
 | `0000:05f3` up to `0000:0820` | `desktop_frame` | outer frame and message box; board coordinates (`0000:0413`) and box text missing |
-| `19e7:4294` (colour fields only) | `settings_defaults`, `settings_load_par` | partial |
+| `293b:9fb1`, `293b:a044`, `293b:a0ce`, fonts `DS:714F` | `gfx_draw_text_p`, `gfx_draw_text`, `fonts_load` | complete for VGA |
+| `19e7:b0c4`, `19e7:2354` | `language_load`, `language_string` | reading; the in-memory pool is not emulated |
+| `0a1f:67c3`, `0a1f:65bb`, `0a1f:64b5` | `ui_message`, `ui_text_line` | complete |
+| `0000:2512` final menu bar and line (`0a1f:67c3(0x1C…)`, `293b:9ab2`) | `desktop_draw` | complete |
+| `19e7:4294` (colours and language only) | `settings_defaults`, `settings_load_par` | partial |
 
 Check (`tools/compare/diff.py`): `fritz --par … --dump` matches the DOSBox
 screenshot pixel for pixel wherever the desktop is visible, with the
 original PAR and with the modified one of experiment 3, including the
 outer frame and the message box. `tests/gui/screens.sh` runs these checks.
 
-## 10. Tools
+## 11. Tools
 
 | Tool | Use |
 |---|---|
@@ -243,9 +279,8 @@ tools/compare/dosbox-run.sh build/captures 15 F1 Up Return sleep:1.5 ctrl+F5
 Note: under Wayland DOSBox runs through XWayland. XTest works as long as
 the DOSBox window has focus.
 
-## 11. Next steps
+## 12. Next steps
 
-1. Extract the font and the text routines (menu bar, message box, panels).
 1. Continue `0000:2512` after `0000:05f3`: `0000:022f`, board, panels.
 2. Decode the remaining `FRITZ2.PAR` fields.
 3. Annotate the Ghidra project with the names of the functions identified so far.

@@ -6,6 +6,7 @@
 enum {
     PAR_MAGIC = 200,
     PAR_RECORD_SIZE = 0x212,   /* bytes read by 393b:20a3 */
+    PAR_LANGUAGE = 0x004,
     PAR_COLOR_AD6E = 0x194,
     PAR_COLOR_B0C6 = 0x196,
     PAR_COLORS_0F4C = 0x19c
@@ -28,6 +29,9 @@ static uint16_t read16(const uint8_t *p)
 void settings_defaults(Settings *s)
 {
     s->card_id = card_vga[1];
+    /* Without a PAR file the original asks for the language; English is the
+       port's default. */
+    strcpy(s->language_file, "FENGLISH.LAN");
     s->color_ad6e = card_vga[3];
     s->color_b0c6 = 0;
     memcpy(s->colors_0f4c, default_colors_0f4c, sizeof s->colors_0f4c);
@@ -50,6 +54,8 @@ bool settings_load_par(Settings *s, const char *path)
     if (n != sizeof rec || read16(rec) != PAR_MAGIC || read16(rec + 2) != s->card_id)
         return false;
 
+    memcpy(s->language_file, rec + PAR_LANGUAGE, 16);
+    s->language_file[16] = '\0';
     s->color_ad6e = read16(rec + PAR_COLOR_AD6E);
     s->color_b0c6 = read16(rec + PAR_COLOR_B0C6);
     for (int i = 0; i < 28; i++)

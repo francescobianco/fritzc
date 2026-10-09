@@ -18,6 +18,9 @@
 293b:9ab2 gfx_hline pascal x y w color
 293b:9cd4 gfx_vline pascal x y h color
 293b:aad3 gfx_scale_line pascal v
+293b:9fb1 gfx_draw_text_p pascal x y font pstring color mode
+293b:a044 gfx_draw_text pascal x y font string color mode
+293b:1dee pstrcpy_from_c pascal dst src
 293b:1f81 mouse_hide keep
 293b:1f6e mouse_show keep
 
@@ -25,6 +28,12 @@
 0000:2512 desktop_draw cdecl
 0000:05f3 desktop_frame keep
 0000:0413 board_coordinates_draw keep
+0a1f:67c3 ui_message keep
+0a1f:65bb ui_text_line keep
+0a1f:64b5 ui_clear_text_area keep
+19e7:22ac message_get keep
+19e7:2354 language_load_tables keep
+19e7:b0c4 language_load_block keep
 0000:814b init_graphics keep
 
 # Settings

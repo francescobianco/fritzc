@@ -3,6 +3,7 @@
 #include "gfx.h"
 #include "layout.h"
 #include "settings.h"
+#include "ui_text.h"
 
 /* 0000:05f3 up to the message box background (0000:0820). Not yet
    translated: the board coordinates (0000:0413, only with [B17C] & 1) and the
@@ -40,8 +41,11 @@ static void desktop_frame(Screen *screen, const Settings *settings)
                      GFX_PATTERN_SOLID, GFX_ROP_COPY);
 }
 
-/* 0000:2512 up to the call of 0000:05f3. */
-void desktop_draw(Screen *screen, const Settings *settings)
+/* 0000:2512. Translated: the background, the frame (0000:05f3) and the
+   menu bar at the end. Not yet translated, in call order: 0000:022f,
+   0a1f:7d72, 0a1f:78ac, 0000:2037, 0a1f:00a4, 0000:21c5, 19e7:a994 or the
+   0a1f:7a98 group, 0000:2372, 0000:24ee, 0000:31e5. */
+void desktop_draw(Screen *screen, const Settings *settings, const Language *lan)
 {
     const Layout *l = &layout_vga;
     uint16_t top = l->menu_bar_height + 1;
@@ -55,4 +59,8 @@ void desktop_draw(Screen *screen, const Settings *settings)
                                                       : settings->color_b0c6),
                      GFX_PATTERN_DESKTOP, GFX_ROP_COPY);
     desktop_frame(screen, settings);
+
+    /* Menu bar text and the line below it. */
+    ui_message(screen, settings, lan, 0x1c, settings->color_ad6e, 0, 1);
+    gfx_hline(screen, 0, l->menu_bar_height, width, (uint8_t)settings->color_b0c6);
 }

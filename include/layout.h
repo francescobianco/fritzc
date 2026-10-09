@@ -14,9 +14,9 @@ typedef struct Layout {
     uint16_t square_w;           /* [0B98] */
     uint16_t square_h;           /* [0B9A] */
     uint16_t w0b9c[7];
-    uint16_t w0baa;
-    uint16_t menu_bar_height;    /* [0BAC] */
-    uint16_t w0bae;
+    uint16_t text_font;          /* [0BAA] */
+    uint16_t menu_bar_height;    /* [0BAC]: also the text line height */
+    uint16_t char_width;         /* [0BAE] */
     uint16_t display_flags;      /* [0BB0] */
     uint16_t w0bb2, w0bb4, w0bb6;
 } Layout;

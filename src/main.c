@@ -1,10 +1,13 @@
 /* Fritz 2.5 Reborn — main screen prototype (phase 3).
  *
  * Everything drawn here is a translation of FRITZ2.EXE routines
- * (SEG:OFF addresses in the unpacked executable).
+ * (SEG:OFF addresses in the unpacked executable). Artwork and texts are read
+ * at runtime from the user's original distribution (--data).
  *
- * Usage: fritz [--par FRITZ2.PAR] [--scale N] [--reference capture.bmp]
- *              [--dump out.bmp]
+ * Usage: fritz [--data DIR] [--par FRITZ2.PAR] [--scale N]
+ *              [--reference capture.bmp] [--dump out.bmp]
+ *   --data DIR   original Fritz 2.51 files (default: dos/fritz251)
+ *   --par FILE   settings file (default: DIR/FRITZ2.PAR, if present)
  *   With --reference: Tab toggles port/reference, D shows the differences
  *   (mismatching pixels in red), Esc quits.
  */
@@ -15,10 +18,13 @@
 #include <SDL3/SDL.h>
 
 #include "desktop.h"
+#include "exe.h"
+#include "font.h"
 #include "gfx.h"
+#include "language.h"
 #include "platform.h"
-#include "settings.h"
 #include "screen.h"
+#include "settings.h"
 
 typedef enum View { VIEW_NATIVE, VIEW_REFERENCE, VIEW_DIFF } View;
 
@@ -31,19 +37,39 @@ static void make_diff(const Screen *a, const Screen *b, Screen *out)
                 : 12; /* light red */
 }
 
+static const char *data_file(const char *dir, const char *name)
+{
+    static char path[1024];
+    snprintf(path, sizeof path, "%s/%s", dir, name);
+    return path;
+}
+
+static void render(Screen *screen, const Settings *settings, const Language *lan)
+{
+    gfx_set_scale(&gfx_scale_vga);
+    screen_clear(screen, COLOR_BLACK);
+    desktop_draw(screen, settings, lan);
+}
+
 int main(int argc, char **argv)
 {
     static Screen native, reference, diff;
+    const char *data_dir = "dos/fritz251";
     const char *reference_path = NULL;
     const char *dump_path = NULL;
     const char *par_path = NULL;
+    char error[256];
     Settings settings;
+    Language lan;
+    Exe exe;
     int scale = 2;
     View view = VIEW_NATIVE;
 
     for (int i = 1; i < argc; i++) {
         if (strcmp(argv[i], "--scale") == 0 && i + 1 < argc)
             scale = atoi(argv[++i]);
+        else if (strcmp(argv[i], "--data") == 0 && i + 1 < argc)
+            data_dir = argv[++i];
         else if (strcmp(argv[i], "--reference") == 0 && i + 1 < argc)
             reference_path = argv[++i];
         else if (strcmp(argv[i], "--par") == 0 && i + 1 < argc)
@@ -51,22 +77,34 @@ int main(int argc, char **argv)
         else if (strcmp(argv[i], "--dump") == 0 && i + 1 < argc)
             dump_path = argv[++i];
         else {
-            fprintf(stderr, "usage: %s [--par FRITZ2.PAR] [--scale N] [--reference capture.bmp] [--dump out.bmp]\n", argv[0]);
+            fprintf(stderr, "usage: %s [--data DIR] [--par FRITZ2.PAR] [--scale N] "
+                            "[--reference capture.bmp] [--dump out.bmp]\n", argv[0]);
             return 1;
         }
     }
     if (scale < 1)
         scale = 1;
 
+    if (exe_load(&exe, data_file(data_dir, "FRITZ2.EXE"), error, sizeof error) != 0) {
+        fprintf(stderr, "%s\n", error);
+        return 1;
+    }
+    if (!fonts_load(&exe)) {
+        fprintf(stderr, "FRITZ2.EXE: font data not found\n");
+        return 1;
+    }
+
     settings_defaults(&settings);
-    if (par_path && !settings_load_par(&settings, par_path))
+    if (!par_path)
+        par_path = data_file(data_dir, "FRITZ2.PAR");
+    if (!settings_load_par(&settings, par_path))
         fprintf(stderr, "%s: not a valid FRITZ2.PAR, using defaults\n", par_path);
+    if (!language_load(&lan, data_file(data_dir, settings.language_file)))
+        fprintf(stderr, "%s: cannot load the language file\n", settings.language_file);
 
     if (dump_path) {
         /* Headless rendering: save the frame and exit. */
-        gfx_set_scale(&gfx_scale_vga);
-        screen_clear(&native, COLOR_BLACK);
-        desktop_draw(&native, &settings);
+        render(&native, &settings, &lan);
         return platform_save_screen(&native, dump_path) ? 0 : 1;
     }
 
@@ -75,9 +113,7 @@ int main(int argc, char **argv)
     if (reference_path && !platform_load_reference(reference_path, &reference))
         reference_path = NULL;
 
-    gfx_set_scale(&gfx_scale_vga);
-    screen_clear(&native, COLOR_BLACK);
-    desktop_draw(&native, &settings);
+    render(&native, &settings, &lan);
     if (reference_path) {
         int different = 0;
         make_diff(&native, &reference, &diff);
@@ -108,5 +144,7 @@ int main(int argc, char **argv)
     }
 
     platform_shutdown();
+    language_free(&lan);
+    exe_free(&exe);
     return 0;
 }

@@ -26,6 +26,15 @@ p[0x19e] = 4
 open(sys.argv[2], 'wb').write(p)
 PY
 
+# Experiment 4: German language file.
+de_par=$caps/exp-deutsch.par
+[ -f "$de_par" ] || python3 -I - "$root/dos/fritz251/FRITZ2.PAR" "$de_par" <<'PY'
+import sys
+p = bytearray(open(sys.argv[1], 'rb').read())
+p[4:20] = b'FDEUTSCH.LAN'.ljust(16, b'\0')
+open(sys.argv[2], 'wb').write(p)
+PY
+
 capture() {  # NAME PAR
     if [ ! -f "$caps/$1/fritz2_000.png" ]; then
         FRITZ_EXE=$unpacked FRITZ_FILES="FRITZ2.PAR=$2" \
@@ -33,15 +42,16 @@ capture() {  # NAME PAR
     fi
 }
 
-# Regions reconstructed so far: desktop pattern, outer frame, message box.
-REGIONS="5,20,11,380 612,20,635,380 5,20,635,35 0,15,640,20 0,472,640,480
+# Regions reconstructed so far: menu bar, desktop pattern, outer frame,
+# message box.
+REGIONS="0,0,640,15 5,20,11,380 612,20,635,380 5,20,635,35 0,15,640,20 0,472,640,480
 0,15,5,480 635,15,640,480 5,380,635,472"
 
 status=0
-for case in main:$root/dos/fritz251/FRITZ2.PAR exp-colours:$exp_par; do
+for case in main:$root/dos/fritz251/FRITZ2.PAR exp-colours:$exp_par exp-deutsch:$de_par; do
     name=${case%%:*} par=${case#*:}
     capture "$name" "$par"
-    "$build/fritz" --par "$par" --dump "$caps/$name/native.bmp"
+    "$build/fritz" --data "$root/dos/fritz251" --par "$par" --dump "$caps/$name/native.bmp"
     echo "== $name"
     # shellcheck disable=SC2086
     python3 -I "$root/tools/compare/diff.py" "$caps/$name/native.bmp" \

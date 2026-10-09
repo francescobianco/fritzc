@@ -9,7 +9,7 @@ Analysis status: [docs/reverse-engineering.md](docs/reverse-engineering.md).
 ```sh
 cmake -S . -B build/cmake          # downloads and builds SDL3 if not installed
 cmake --build build/cmake
-build/cmake/fritz [--par dos/fritz251/FRITZ2.PAR] [--scale N] [--reference capture.bmp] [--dump out.bmp]
+build/cmake/fritz [--data dos/fritz251] [--par FILE] [--scale N] [--reference capture.bmp] [--dump out.bmp]
 ```
 
 To use an existing SDL3 build: `-DCMAKE_PREFIX_PATH=/path/to/prefix`.
@@ -17,6 +17,8 @@ To use an existing SDL3 build: `-DCMAKE_PREFIX_PATH=/path/to/prefix`.
 ## Original distribution
 
 Put the original files in `dos/fritz251/` (excluded from the repository).
+The port reads fonts, graphics and texts from them at runtime; no original
+asset is stored in this repository.
 The expected hashes are in `reference/fritz251.sha256`:
 
 ```sh
