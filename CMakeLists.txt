@@ -24,6 +24,7 @@ add_executable(fritz
     src/gui/screen.c
     src/gui/gfx.c
     src/gui/desktop.c
+    src/game/settings.c
     src/gui/palette.c
     src/platform/sdl.c)
 target_include_directories(fritz PRIVATE include)

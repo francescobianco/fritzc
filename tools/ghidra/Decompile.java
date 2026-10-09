@@ -1,4 +1,4 @@
-// Decompiles the functions at the given addresses (SEG:OFF relative to the
+// Decompiles the functions at (or containing) the given addresses (SEG:OFF relative to the
 // FRITZ2.UNP.EXE image, as used in docs/reverse-engineering.md) and prints C.
 // Headless usage: -postScript Decompile.java 293b:9e44 0000:2512 ...
 //@category Fritz
@@ -21,12 +21,13 @@ public class Decompile extends GhidraScript {
             long seg = Long.parseLong(p[0], 16) + base;
             long off = Long.parseLong(p[1], 16);
             Address addr = toAddr(String.format("%04x:%04x", seg, off));
-            Function f = getFunctionAt(addr);
+            Function f = getFunctionContaining(addr);
             if (f == null) {
                 disassemble(addr);
                 f = createFunction(addr, null);
             }
-            println("==== " + arg + " (ghidra " + addr + ")");
+            println("==== " + arg + " (ghidra " + addr + ")"
+                    + (f != null ? " in " + f.getEntryPoint() : ""));
             if (f == null) {
                 println("no function");
                 continue;

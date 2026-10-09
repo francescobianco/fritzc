@@ -9,7 +9,7 @@ Analysis status: [docs/reverse-engineering.md](docs/reverse-engineering.md).
 ```sh
 cmake -S . -B build/cmake          # downloads and builds SDL3 if not installed
 cmake --build build/cmake
-build/cmake/fritz [--scale N] [--reference capture.bmp] [--dump out.bmp]
+build/cmake/fritz [--par dos/fritz251/FRITZ2.PAR] [--scale N] [--reference capture.bmp] [--dump out.bmp]
 ```
 
 To use an existing SDL3 build: `-DCMAKE_PREFIX_PATH=/path/to/prefix`.

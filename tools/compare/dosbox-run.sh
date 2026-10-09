@@ -9,6 +9,8 @@
 #
 # FRITZ_EXE=path/FRITZ2.EXE replaces the executable in the working copy
 # (e.g. the unpacked build or one patched with tools/compare/patch.py).
+# FRITZ_FILES="NAME=path ..." replaces other files the same way
+# (e.g. FRITZ_FILES="FRITZ2.PAR=build/re/exp.par").
 set -eu
 root=$(cd "$(dirname "$0")/../.." && pwd)
 out=$(mkdir -p "$1" && cd "$1" && pwd); shift
@@ -19,6 +21,9 @@ trap 'rm -rf "$work"' EXIT
 mkdir -p "$work/c"
 cp -r "$root/dos/fritz251" "$work/c/FRITZ"
 [ -n "${FRITZ_EXE:-}" ] && cp "$FRITZ_EXE" "$work/c/FRITZ/FRITZ2.EXE"
+for spec in ${FRITZ_FILES:-}; do
+    cp "${spec#*=}" "$work/c/FRITZ/${spec%%=*}"
+done
 {
     cat "$root/reference/dosbox.conf"
     printf '\n[dosbox]\ncaptures=%s\n' "$out"

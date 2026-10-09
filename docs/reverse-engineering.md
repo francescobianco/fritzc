@@ -136,25 +136,58 @@ at `DS:6FA1…6FDD`, indexed by `[DS:6F58]`. **[verified]**
 - **Patterns** `DS:7023` → eight 8×8 masks at `DS:7033…706A`; number 1
   (`88 22…`) is the desktop background. **[verified by patch]**
 
-## 7. Experiment log
+## 7. Settings (`FRITZ2.PAR`)
+
+Loaded by `19e7:4294` (`LoadSettings(reload)`). With `reload == 0` it first
+sets the defaults, then opens the file (`19e7:3ee4` builds the path) and
+reads a `0x212`-byte record with `393b:20a3`. The record is applied only if
+`word[0] == 200` and `word[2]` equals the id of the current graphics card
+descriptor. **[verified]**
+
+Graphics card descriptors: 8 bytes each at `DS:0E10`, selected by
+`0a1f:c4e0` into `[AFAE]`: `(flags, id, ?, default colour)`. VGA is
+`DS:0E28 = (1, 18, 3, 15)`; `FRITZ2.PAR` has id 18. **[verified]**
+
+Known record fields (offsets in the file):
+
+| Offset | Size | Destination | Meaning |
+|---|---:|---|---|
+| `0x000` | 2 | — | magic `200` |
+| `0x002` | 2 | — | card descriptor id |
+| `0x004` | 16 | `DS:AD5D` | language file name (`FENGLISH.LAN`) |
+| `0x190` | 2 | `[AFB8]` | ? |
+| `0x192` | 2 | `[B0C2]` | ? |
+| `0x194` | 2 | `[AD6E]` | background / menu bar colour (default: descriptor colour) |
+| `0x196` | 2 | `[B0C6]` | colour (default 0) |
+| `0x198` | 2 | `[B112]` | ? |
+| `0x19A` | 2 | `[AC30]` | ? |
+| `0x19C` | 56 | `DS:0F4C…0F83` | colour table; entry 1 (`[0F4E]`) is the desktop hatching and the panel shadows (default `DS:0F4C`: 0..15, 10, 11, 12, 14, 15, 15, 0, 15, 0, 15, 0, 15) |
+
+Translated in `src/game/settings.c`.
+
+## 8. Experiment log
 
 | # | Hypothesis | Patch | Result |
 |---|---|---|---|
 | 1 | The unpacked EXE is equivalent to the original | none (`FRITZ_EXE=FRITZ2.UNP.EXE`) | Confirmed: identical screen except the memory indicator |
 | 2 | `DS:703B` is the desktop pattern | `DS:703b=ff00ff00ff00ff00` | Confirmed: the background turns into horizontal blue and white stripes |
+| 3 | `FRITZ2.PAR` offsets `0x194` and `0x19E` hold `[AD6E]` and `[0F4E]` | PAR: `0x194=14`, `0x19e=4` (`FRITZ_FILES`) | Confirmed: yellow background and menu bar, red hatching and panel shadows; the port with the same PAR matches the capture in every comparable zone |
 
-## 8. Reconstructed functions
+## 9. Reconstructed functions
 
 | Original | C | Status |
 |---|---|---|
 | `293b:aa5f`, `293b:aa75`, `293b:aa8b` | `gfx_scale_x/y`, `gfx_set_scale` | complete |
 | `293b:9e44` (VGA driver only) | `gfx_fill_pattern` | complete for VGA |
-| `0000:2512` up to `0000:259d` | `desktop_draw` | partial: colours `[AD6E]`, `[0F4E]`, `[B0C6]` taken from observation, origin to be reconstructed |
+| `0000:2512` up to `0000:259d` | `desktop_draw` | partial (frames and panels from `0000:05f3` missing) |
+| `19e7:4294` (colour fields only) | `settings_defaults`, `settings_load_par` | partial |
 
-Check: `fritz --dump` matches the DOSBox screenshot pixel for pixel
-wherever the desktop is visible.
+Check (`tools/compare/diff.py`): `fritz --par … --dump` matches the DOSBox
+screenshot pixel for pixel wherever the desktop is visible, with the
+original PAR and with the modified one of experiment 3. Row 476 still
+differs: it belongs to the frame drawn later.
 
-## 9. Tools
+## 10. Tools
 
 | Tool | Use |
 |---|---|
@@ -162,7 +195,8 @@ wherever the desktop is visible.
 | `tools/inspect/xkeys.py KEYS…` | Sends keys via XTest to the focused window (DOSBox) |
 | `tools/inspect/dis.py EXE SEG:OFF [N]` | Disassembles N instructions at an address |
 | `tools/compare/patch.py IN OUT SEG:OFF=HEX…` | Patches the unpacked EXE (for experiments) |
-| `tools/compare/dosbox-run.sh OUTDIR SECS KEYS…` | Runs Fritz on a temporary copy and collects screenshots (`ctrl+F5`); `FRITZ_EXE` replaces the executable |
+| `tools/compare/dosbox-run.sh OUTDIR SECS KEYS…` | Runs Fritz on a temporary copy and collects screenshots (`ctrl+F5`); `FRITZ_EXE` replaces the executable, `FRITZ_FILES="NAME=path …"` other files |
+| `tools/compare/diff.py NATIVE.bmp CAPTURE.png [REGIONS…]` | Pixel comparison between the port and a capture |
 | `tools/ghidra/decompile.sh SEG:OFF…` | Imports the unpacked EXE into Ghidra (headless) and prints decompiled functions |
 
 Example, capturing the About box:
@@ -174,11 +208,10 @@ tools/compare/dosbox-run.sh build/captures 15 F1 Up Return sleep:1.5 ctrl+F5
 Note: under Wayland DOSBox runs through XWayland. XTest works as long as
 the DOSBox window has focus.
 
-## 10. Next steps
+## 11. Next steps
 
 1. Continue `0000:2512` from `call 0000:05f3`: frames, panels, menu bar.
-2. Find where the colours `[AD6E]`, `[0F4E]`, `[B0C6]` come from
-   (probably `FRITZ2.PAR` or a default table).
+2. Decode the remaining `FRITZ2.PAR` fields.
 3. Annotate the Ghidra project with the names of the functions identified so far.
 4. Check whether `FRITZ2.BIN` is the engine: trace how `FRITZ2.EXE` loads it
    and its entry point (`JMP 0x2604`).

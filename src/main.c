@@ -3,7 +3,8 @@
  * Everything drawn here is a translation of FRITZ2.EXE routines
  * (SEG:OFF addresses in the unpacked executable).
  *
- * Usage: fritz [--scale N] [--reference capture.bmp] [--dump out.bmp]
+ * Usage: fritz [--par FRITZ2.PAR] [--scale N] [--reference capture.bmp]
+ *              [--dump out.bmp]
  *   With --reference: Tab toggles port/reference, D shows the differences
  *   (mismatching pixels in red), Esc quits.
  */
@@ -16,6 +17,7 @@
 #include "desktop.h"
 #include "gfx.h"
 #include "platform.h"
+#include "settings.h"
 #include "screen.h"
 
 typedef enum View { VIEW_NATIVE, VIEW_REFERENCE, VIEW_DIFF } View;
@@ -34,6 +36,8 @@ int main(int argc, char **argv)
     static Screen native, reference, diff;
     const char *reference_path = NULL;
     const char *dump_path = NULL;
+    const char *par_path = NULL;
+    Settings settings;
     int scale = 2;
     View view = VIEW_NATIVE;
 
@@ -42,21 +46,27 @@ int main(int argc, char **argv)
             scale = atoi(argv[++i]);
         else if (strcmp(argv[i], "--reference") == 0 && i + 1 < argc)
             reference_path = argv[++i];
+        else if (strcmp(argv[i], "--par") == 0 && i + 1 < argc)
+            par_path = argv[++i];
         else if (strcmp(argv[i], "--dump") == 0 && i + 1 < argc)
             dump_path = argv[++i];
         else {
-            fprintf(stderr, "usage: %s [--scale N] [--reference capture.bmp] [--dump out.bmp]\n", argv[0]);
+            fprintf(stderr, "usage: %s [--par FRITZ2.PAR] [--scale N] [--reference capture.bmp] [--dump out.bmp]\n", argv[0]);
             return 1;
         }
     }
     if (scale < 1)
         scale = 1;
 
+    settings_defaults(&settings);
+    if (par_path && !settings_load_par(&settings, par_path))
+        fprintf(stderr, "%s: not a valid FRITZ2.PAR, using defaults\n", par_path);
+
     if (dump_path) {
         /* Headless rendering: save the frame and exit. */
         gfx_set_scale(&gfx_scale_vga);
         screen_clear(&native, COLOR_BLACK);
-        desktop_draw(&native);
+        desktop_draw(&native, &settings);
         return platform_save_screen(&native, dump_path) ? 0 : 1;
     }
 
@@ -67,7 +77,7 @@ int main(int argc, char **argv)
 
     gfx_set_scale(&gfx_scale_vga);
     screen_clear(&native, COLOR_BLACK);
-    desktop_draw(&native);
+    desktop_draw(&native, &settings);
     if (reference_path) {
         int different = 0;
         make_diff(&native, &reference, &diff);
