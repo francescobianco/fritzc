@@ -94,6 +94,13 @@ uint16_t eng_in_check(Engine *e, uint8_t dl);
 /* 0x72fe..0x7325: legal move lists (see movegen.c). */
 void eng_generate_legal_core(Engine *e, EngRegs *r);
 
+/* 0x72f2: eng_eval_setup, check flag, attack tables, legal move lists. */
+void eng_generate_legal(Engine *e, EngRegs *r);
+
+/* 0x6a0b: rebuilds the piece-square tables, file masks and endgame
+   weights, and the starting evaluation [0x11f0]. Out: DH bit 7 = endgame. */
+void eng_eval_setup(Engine *e, EngRegs *r);
+
 /* 0x8692: static exchange evaluation of the piece on `si` capturing on
    `di`, side chosen by bit 0x10 of `dx`. Returns AX (AH = gain estimate,
    AL = attacker balance). */

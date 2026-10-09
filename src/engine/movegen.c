@@ -220,3 +220,23 @@ void eng_generate_legal_core(Engine *e, EngRegs *r)
     eng_wr8(e, 0xfbd, 0);
     quiet(e, r);
 }
+
+/* 0x2f2d: BP = 0, DH bit 7 = side to move in check. */
+static void check_flag(Engine *e, EngRegs *r)
+{
+    r->bp = 0;
+    r->dx &= 0x7fff;
+    if (eng_in_check(e, (uint8_t)r->dx))
+        r->dx |= 0x8000;
+}
+
+/* 0x72f2: evaluation set-up, check flag, attack tables from scratch, then
+   the legal move lists. In: DL side to move, BP ply × 2. */
+void eng_generate_legal(Engine *e, EngRegs *r)
+{
+    eng_eval_setup(e, r);
+    check_flag(e, r);
+    eng_attacks_clear(e);
+    eng_attacks_build(e);
+    eng_generate_legal_core(e, r);
+}

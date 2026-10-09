@@ -167,6 +167,21 @@ below `0x2704`). **[verified]**
   flag bits: `inc cl`, `add cl, 0x3F`). Each legal move gets the score
   "evaluation after the move − SEE gain × 256". **[verified]**
 
+- Evaluation set-up `0x6a0b` (run before every search, by `0x72f2`):
+  rebuilds the piece-square tables `0x6D0…0xE1F` from 8×8 templates of
+  signed bytes (×8), relative patterns (`0x6e16`) and single entries given
+  as inline data after `call 0x6d8d`; sets the file masks (`0x646`/`0x647`
+  files without own pawns, `0x648`/`0x649` pawn beyond the fourth rank,
+  `0x64E`/`0x64F` files with rooks), the endgame flag (material units
+  below `0x2E`) and weights (`0x650`, `0x652`); special templates for
+  K+B+N vs K depending on the bishop's square colour; endgame king tables
+  (centralisation, proximity to the passed pawns of both sides, penalty for
+  an enemy rook on the second rank); middlegame king safety masks; a bonus
+  for f2/g2/h2 with the king castled short and the rook on h1. Black's
+  tables are computed with White's code on a colour-flipped board
+  (`0x6d03`, `0x6cc3`). Finally the starting evaluation `[0x11F0]` sums
+  material and terms of both sides. **[verified]**
+
 ## 7. C reconstruction and differential tests
 
 `src/engine/` keeps the 64 KB segment as `Engine.mem` with the same offsets,
@@ -193,6 +208,8 @@ segment and run its own code on it.
 | `0x8692` | `eng_see` | identical: 717 444 calls on 192 states |
 | `0x45F4` dispatch (hash + attacks), `0x4646`, `0x4624` | `eng_piece_toggle`, `eng_slider_update`, `eng_square_update` | identical: 30 270 calls |
 | `0x632A` / `0x634A` dispatch, `0x637C…0x6A06` | `eng_eval_remove`, `eng_eval_add` | identical: 116 286 calls (AX, BP, CX, memory) |
+| `0x6a0b…0x6e9f` evaluation set-up | `eng_eval_setup` | identical: 230 positions, whole segment (the K+B+N vs K branch is translated but not yet exercised) |
+| `0x72f2` (set-up, `0x2f2d` check flag, attack tables, lists) | `eng_generate_legal` | identical: 230 positions, whole segment |
 | `0x72fe…0x7325` with `0x7408` (captures), `0x74a8` (en passant), `0x79c1` (castling + quiet), `0x7326` (legality + scoring) | `eng_generate_legal_core` | identical: 230 positions, whole segment byte for byte (lists, scores, flags, scratch) |
 | `0x6f81` make move, `0x719e` unmake move | `eng_make_move`, `eng_unmake_move` | identical: 14 460 calls captured from the original move generator (807 captures, 20 castlings, 4 en passant, 32 promotions) |
 | `0x29d8` hash sizing | `engine_hash_exponent` | translated (§4) |

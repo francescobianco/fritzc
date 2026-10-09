@@ -265,6 +265,25 @@ def test_make_unmake(eng, c, state):
     return len(calls), bad
 
 
+def test_whole(eng, c, state, address, function, command=0x0F):
+    """A routine from the real state at its entry during `command`: every
+    byte of the segment must match afterwards."""
+    calls = capture_calls(eng, state, (address,), command=command, limit=1)
+    bad = []
+    for _, regs, image in calls:
+        harness.restore(eng, image)
+        keep = {k: regs[k] for k in ('ax', 'bx', 'cx', 'dx', 'si', 'di', 'bp')}
+        r = harness.call_near(eng, address, keep)
+        c.load(image)
+        cr = Regs(**keep)
+        getattr(c.lib, function)(c.buf, ctypes.byref(cr))
+        mem = compare(harness.snapshot(eng), c.image())
+        if mem or (r['dx'] & 0xff00) != (cr.dx & 0xff00):
+            bad.append((function, f"dh orig={r['dx'] >> 8:#x} c={cr.dx >> 8:#x}",
+                        [hex(i) for i in mem[:6]]))
+    return len(calls), bad
+
+
 def test_generate_core(eng, c, state):
     """0x72fe..0x7325 from the real state at 0x72fe during command 0x0F:
     the move lists and every byte of the segment must match."""
@@ -316,6 +335,11 @@ def run(path_bin, path_lib):
               f'rebuild vs incremental {len(diff3)} diffs' + ('' if ok else '  FAIL'))
         if diff2:
             print('   first:', [hex(i) for i in diff2[:8]])
+        for addr, fn in ((0x6A0B, 'eng_eval_setup'), (0x72F2, 'eng_generate_legal')):
+            n6, bad6 = test_whole(eng, c, state, addr, fn)
+            failures += bool(bad6)
+            print(f'          {fn}: {n6} runs, {len(bad6)} mismatches'
+                  + ''.join(f'\n            {b}' for b in bad6[:2]))
         calls5, bad5 = test_generate_core(eng, c, state)
         failures += bool(bad5)
         print(f'          generate: {calls5} runs, {len(bad5)} mismatches'
