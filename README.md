@@ -4,6 +4,17 @@ A native C11 + SDL3 port of ChessBase Fritz 2.51 for MS-DOS, rebuilt by
 reverse engineering the original program. Vision and plan: [IDEA.md](IDEA.md).
 Analysis status: [docs/reverse-engineering.md](docs/reverse-engineering.md).
 
+## Quick start
+
+```sh
+make start      # build and show what is reconstructed so far
+make compare    # same, Tab toggles the original DOSBox screen, D shows differences
+make test       # pixel regression test against DOSBox
+make original   # run the original in DOSBox
+```
+
+The original files are expected in `dos/fritz251` (`make start DATA=path` otherwise).
+
 ## Building
 
 ```sh
