@@ -107,10 +107,85 @@ def test_see(eng, c, state):
     return calls, bad
 
 
+def word(image, off):
+    return image[off] | image[off + 1] << 8
+
+
+def test_square_updates(eng, c, state):
+    """0x45f4 dispatch (hash + attacks) on every piece, 0x4646 and 0x4624 on
+    every square; each on a fresh copy of the state, whole image compared."""
+    bad = []
+    calls = 0
+    code_table = {code: word(state, 0x45f4 + code) for code in range(0x10, 0x30, 2)}
+    for di in board_squares():
+        cases = [('slider_update', 0x4646, 'eng_slider_update', (di,)),
+                 ('square_update', 0x4624, 'eng_square_update', (di,))]
+        code = word(state, di)
+        if 0x10 <= code < 0x30:
+            mask = word(state, word(state, di + 0x100) + 0x42f0)
+            cases.append(('piece_toggle', code_table[code], 'eng_piece_toggle', (code, di, mask)))
+        for name, addr, fn, args in cases:
+            harness.restore(eng, state)
+            regs = {'di': di}
+            if name == 'piece_toggle':
+                regs.update(bp=code, dx=args[2])
+            harness.call_near(eng, addr, regs)
+            c.load(state)
+            getattr(c, fn)(*args)
+            d = compare(harness.snapshot(eng), c.image())
+            calls += 1
+            if d:
+                bad.append((name, di, [hex(i) for i in d[:4]]))
+    return calls, bad
+
+
+class Regs(ctypes.Structure):
+    _fields_ = [(n, ctypes.c_uint16) for n in ('ax', 'bx', 'cx', 'dx', 'si', 'di', 'bp')]
+
+
+def test_eval_terms(eng, c, state, rng):
+    """0x634a / 0x632a dispatch (eval_add / eval_remove) with varied inputs."""
+    bad = []
+    calls = 0
+    add_table = {code: word(state, 0x634a + code) for code in range(0x10, 0x30, 2)}
+    rem_table = {code: word(state, 0x632a + code) for code in range(0x10, 0x30, 2)}
+    cases = []
+    for di in board_squares():
+        code = word(state, di)
+        if 0x10 <= code < 0x30:
+            cases.append(('remove', code, di, di, 0x30 if rng.random() < 0.5 else 0))
+    empties = [di for di in board_squares() if word(state, di) == 0]
+    for code in range(0x10, 0x30, 2):
+        for di in rng.sample(empties, min(6, len(empties))):
+            si = di - 0x28 if code == 0x10 else di + 0x28 if code == 0x20 else di
+            for cl in (0x00, 0x30, 0x01, 0x40, 0x41, 0x80):
+                cases.append(('add', code, di, si, cl))
+    for kind, code, di, si, cl in cases:
+        ax = rng.randrange(0x10000)
+        dx = rng.randrange(0x10000)
+        harness.restore(eng, state)
+        table = add_table if kind == 'add' else rem_table
+        r = harness.call_near(eng, table[code], {'ax': ax, 'bp': code, 'di': di, 'si': si,
+                                                  'cx': cl, 'dx': dx, 'bx': 0})
+        c.load(state)
+        regs = Regs(ax=ax, bx=0, cx=cl, dx=dx, si=si, di=di, bp=code)
+        getattr(c.lib, 'eng_eval_' + kind)(c.buf, ctypes.byref(regs))
+        calls += 1
+        mem = compare(harness.snapshot(eng), c.image())
+        if (r['ax'], r['bp'], r['cx']) != (regs.ax, regs.bp, regs.cx) or mem:
+            bad.append((kind, hex(code), hex(di), hex(si), hex(cl),
+                        f"orig ax={r['ax']:#06x} bp={r['bp']:#x} cx={r['cx']:#x}",
+                        f'c ax={regs.ax:#06x} bp={regs.bp:#x} cx={regs.cx:#x}',
+                        [hex(i) for i in mem[:3]]))
+    return calls, bad
+
+
 def run(path_bin, path_lib):
     eng, states = collect_states(path_bin)
     states += collect_random_states(path_bin)
     c = CEngine(path_lib)
+    import random
+    rng = random.Random(7)
     failures = 0
     for n, state in enumerate(states):
         # 0x46b7 alone
@@ -135,6 +210,14 @@ def run(path_bin, path_lib):
               f'rebuild vs incremental {len(diff3)} diffs' + ('' if ok else '  FAIL'))
         if diff2:
             print('   first:', [hex(i) for i in diff2[:8]])
+        calls3, bad3 = test_eval_terms(eng, c, state, rng)
+        failures += bool(bad3)
+        print(f'          eval terms: {calls3} calls, {len(bad3)} mismatches'
+              + ''.join(f'\n            {b}' for b in bad3[:5]))
+        calls2, bad2 = test_square_updates(eng, c, state)
+        failures += bool(bad2)
+        print(f'          square updates: {calls2} calls, {len(bad2)} mismatches'
+              + ''.join(f'\n            {b}' for b in bad2[:5]))
         calls, bad = test_see(eng, c, state)
         failures += bool(bad)
         print(f'          see: {calls} calls, {len(bad)} mismatches'

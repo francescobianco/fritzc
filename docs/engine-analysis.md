@@ -133,6 +133,19 @@ below `0x2704`). **[verified]**
   and the values of the cheapest pieces on each side (`0x8662`); returns
   the gain estimate in AH. **[verified]**
 
+- Hash key: two words at `0x69C`; the `0x45F4` variants of the attack
+  routines first XOR the piece's random words for the square (one table per
+  piece type, high words `0x9C` bytes after the low ones). **[verified]**
+- Incremental evaluation: make-move removes the piece from the from-square
+  (`0x632A` table) and adds it on the to-square (`0x634A`), accumulating in
+  AX. The terms include piece-square tables, pawn structure (passed,
+  isolated, doubled, chains, pawns attacked by bishops), knights on c3/c6
+  blocking the c-pawn in Queen's Gambit structures, bishops blocked by their
+  centre pawns, rooks on the seventh with the king on the eighth, file masks
+  at `0x646…0x64F`, and material sets / counters at `0x67C…0x69B`.
+  Promotions take the piece from CL (`0x80` queen, `0x81` rook, `0xC0`
+  bishop, `0xC1` knight). **[verified]**
+
 ## 7. C reconstruction and differential tests
 
 `src/engine/` keeps the 64 KB segment as `Engine.mem` with the same offsets,
@@ -153,6 +166,8 @@ segment and run its own code on it.
 |---|---|---|
 | `0x46b7`, `0x46f8`, `0x4380…0x45AA` | `eng_attacks_clear`, `eng_attacks_build`, `eng_piece_attacks` | identical on 192 states |
 | `0x8692` | `eng_see` | identical: 717 444 calls on 192 states |
+| `0x45F4` dispatch (hash + attacks), `0x4646`, `0x4624` | `eng_piece_toggle`, `eng_slider_update`, `eng_square_update` | identical: 30 270 calls |
+| `0x632A` / `0x634A` dispatch, `0x637C…0x6A06` | `eng_eval_remove`, `eng_eval_add` | identical: 116 286 calls (AX, BP, CX, memory) |
 | `0x29d8` hash sizing | `engine_hash_exponent` | translated (§4) |
 
 ## 8. Plan

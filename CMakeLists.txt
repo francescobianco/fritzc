@@ -24,7 +24,8 @@ endif()
 set(ENGINE_SOURCES
     src/engine/engine_memory.c
     src/engine/attacks.c
-    src/engine/see.c)
+    src/engine/see.c
+    src/engine/eval_pieces.c)
 add_library(fritzengine SHARED ${ENGINE_SOURCES})
 target_include_directories(fritzengine PRIVATE include)
 
