@@ -23,6 +23,7 @@
 #include "game_board.h"
 #include "gfx.h"
 #include "language.h"
+#include "logo.h"
 #include "platform.h"
 #include "screen.h"
 #include "settings.h"
@@ -46,14 +47,15 @@ static const char *data_file(const char *dir, const char *name)
     return path;
 }
 
-static void render(Screen *screen, const Settings *settings, const Language *lan)
+static void render(Screen *screen, const Settings *settings, const Language *lan,
+                   const Logo *logo)
 {
     GameBoard board;
 
     game_board_setup(&board);
     gfx_set_scale(&gfx_scale_vga);
     screen_clear(screen, COLOR_BLACK);
-    desktop_draw(screen, settings, lan, &board);
+    desktop_draw(screen, settings, lan, &board, logo);
 }
 
 int main(int argc, char **argv)
@@ -66,6 +68,7 @@ int main(int argc, char **argv)
     char error[256];
     Settings settings;
     Language lan;
+    Logo logo;
     Exe exe;
     int scale = 2;
     View view = VIEW_NATIVE;
@@ -106,10 +109,12 @@ int main(int argc, char **argv)
         fprintf(stderr, "%s: not a valid FRITZ2.PAR, using defaults\n", par_path);
     if (!language_load(&lan, data_file(data_dir, settings.language_file)))
         fprintf(stderr, "%s: cannot load the language file\n", settings.language_file);
+    if (!logo_load(&logo, data_file(data_dir, "FRITZ2.IMG")))
+        fprintf(stderr, "FRITZ2.IMG: cannot load the logo\n");
 
     if (dump_path) {
         /* Headless rendering: save the frame and exit. */
-        render(&native, &settings, &lan);
+        render(&native, &settings, &lan, &logo);
         return platform_save_screen(&native, dump_path) ? 0 : 1;
     }
 
@@ -118,7 +123,7 @@ int main(int argc, char **argv)
     if (reference_path && !platform_load_reference(reference_path, &reference))
         reference_path = NULL;
 
-    render(&native, &settings, &lan);
+    render(&native, &settings, &lan, &logo);
     if (reference_path) {
         int different = 0;
         make_diff(&native, &reference, &diff);
@@ -150,6 +155,7 @@ int main(int argc, char **argv)
 
     platform_shutdown();
     language_free(&lan);
+    logo_free(&logo);
     exe_free(&exe);
     return 0;
 }

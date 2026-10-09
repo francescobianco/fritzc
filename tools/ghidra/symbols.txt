@@ -39,6 +39,11 @@
 0a1f:70ed game_board_setup keep
 0000:1438 new_game_position keep
 0000:1483 board_from_start_position keep
+19e7:a84a logo_load_file keep
+19e7:e91e img_read keep
+19e7:eb38 img_decode keep
+19e7:a994 logo_draw keep
+293b:ab09 gfx_bitmap_row pascal x y w color bits
 0a1f:65bb ui_text_line keep
 0a1f:64b5 ui_clear_text_area keep
 19e7:22ac message_get keep

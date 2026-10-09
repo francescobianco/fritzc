@@ -238,7 +238,22 @@ Translated in `src/game/settings.c`.
 - Not translated yet: `0a1f:73b0` and the opening-book check, called only
   when `[4256] != 0`; the square cursor drawn on h3 at start.
 
-## 9. Language files (`*.LAN`)
+## 9. Logo (`FRITZ2.IMG`)
+
+`FRITZ2.IMG` is a GEM raster IMG file (big-endian header: version 1,
+8 words, 1 plane, pattern length 1, 85×85 µm pixels, 190×80). It is loaded
+by `19e7:a84a` → `19e7:ecfa`: `19e7:e91e` reads at most `0x513C` bytes and
+byte-swaps the header, `19e7:eb38` decodes it into the bitmap pointed to by
+`[AFA4]` (width, height, words per row, rows). Differences from the GEM
+standard, all reproduced: the data always starts at byte 16 (header length
+ignored); run counts are signed bytes; a vertical replication count `n`
+yields `n + 1` copies of the line; height is capped at `40000 / row bytes`.
+`19e7:ed32` resamples the rows for other cards (`[0B8C]` 0, 2, 4); VGA
+(`[0B8C] = 6`, from `DS:7488`) skips it. `19e7:a994` draws the box: fill
+`[0F6A]`, rows with `293b:ab09` (VGA driver `293b:abb2`, 1 bits painted) at
+x + 19, frame in `[0F4C]`. **[verified: pixel-identical]**
+
+## 10. Language files (`*.LAN`)
 
 Read block by block by `19e7:b0c4`. Header: word directory offset (`0x42`),
 word `0x4D2`, word block count (36). Directory: one dword file offset per
@@ -256,7 +271,7 @@ character, `[0BAC]` rows) and draws the text in `[B0C6]` at
 `x = 8·column`, `y = sy(y)`, inverted when `colour == [B0C6]`.
 Translated in `src/gui/ui_text.c`. **[verified]**
 
-## 10. Experiment log
+## 11. Experiment log
 
 | # | Hypothesis | Patch | Result |
 |---|---|---|---|
@@ -266,7 +281,7 @@ Translated in `src/gui/ui_text.c`. **[verified]**
 | 4 | `FRITZ2.PAR` offset `0x004` names the language file | PAR: `0x004="FDEUTSCH.LAN"` | Confirmed: German menu bar; the port matches it pixel for pixel |
 | 5 | `FRITZ2.PAR` offset `0x1D4` flips the board | PAR: `0x1d4=1` | Confirmed: white at the top; the port's board matches pixel for pixel |
 
-## 11. Reconstructed functions
+## 12. Reconstructed functions
 
 | Original | C | Status |
 |---|---|---|
@@ -283,6 +298,7 @@ Translated in `src/gui/ui_text.c`. **[verified]**
 | `0a1f:78ac`, `0a1f:74ac`, `0a1f:7632` | `board_draw`, `board_draw_empty_square`, `board_draw_piece_square` | complete except the `[4256]` overlay |
 | `293b:a649`, `293b:a6b0` | `gfx_draw_piece` | complete for VGA |
 | `0a1f:70ed` | `game_board_setup` | complete |
+| `19e7:e91e`, `19e7:eb38` (+ run decoders `ea1e`, `eaa2`, `eaea`), `19e7:a994`, `293b:ab09` | `logo_load`, `logo_draw` | complete for VGA |
 | `0000:2512` final menu bar and line (`0a1f:67c3(0x1C…)`, `293b:9ab2`) | `desktop_draw` | complete |
 | `19e7:4294` (colours and language only) | `settings_defaults`, `settings_load_par` | partial |
 
@@ -291,7 +307,7 @@ screenshot pixel for pixel wherever the desktop is visible, with the
 original PAR and with the modified one of experiment 3, including the
 outer frame and the message box. `tests/gui/screens.sh` runs these checks.
 
-## 12. Tools
+## 13. Tools
 
 | Tool | Use |
 |---|---|
@@ -313,10 +329,11 @@ tools/compare/dosbox-run.sh build/captures 15 F1 Up Return sleep:1.5 ctrl+F5
 Note: under Wayland DOSBox runs through XWayland. XTest works as long as
 the DOSBox window has focus.
 
-## 13. Next steps
+## 14. Next steps
 
-1. Remaining panels of `0000:2512`: logo, clocks, status line, notation,
-   opening line; the square cursor.
+1. Remaining panels of `0000:2512`: clocks, status line, notation,
+   opening line (`0a1f:00a4`, `0000:2372`, `0000:24ee`, `0000:31e5`);
+   the square cursor.
 2. Decode the remaining `FRITZ2.PAR` fields.
 3. Annotate the Ghidra project with the names of the functions identified so far.
 4. Check whether `FRITZ2.BIN` is the engine: trace how `FRITZ2.EXE` loads it
