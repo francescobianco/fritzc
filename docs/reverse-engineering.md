@@ -178,6 +178,15 @@ at `DS:6FA1…6FDD`, indexed by `[DS:6F58]`. **[verified]**
   graphic tiles: panel arrows and more, probably the pieces). Code page 437
   with ChessBase figurines at `0xB0…`. The port reads them from the user's
   `FRITZ2.EXE` (`src/assets/exe.c` unpacks it in memory). **[verified]**
+- **Piece bitmaps.** `293b:a649` DrawPiece(x, y, set, piece, variant,
+  colour) with the VGA driver `293b:a6b0`: byte-aligned, paints `colour`
+  where the bitmap bit is **0**. Sets at `DS:7073` → descriptors (offset
+  table, size, width in bytes, height). Bitmap = `offset[(piece-1) & 7]`,
+  `+ size` when `variant` is even, `+ 2·size` when `piece & 8`. Set 3:
+  40×40 pieces, 4 bitmaps each (white on hatched square, white outline,
+  black on hatched square, black outline); set 4: 40×40 silhouettes. Piece
+  order K, Q, N, B, R, P. Read from the user's EXE (`src/gui/sprites.c`).
+  **[verified]**
 - **Patterns** `DS:7023` → eight 8×8 masks at `DS:7033…706A`; number 1
   (`88 22…`) is the desktop background. **[verified by patch]**
 
@@ -210,7 +219,26 @@ Known record fields (offsets in the file):
 
 Translated in `src/game/settings.c`.
 
-## 8. Language files (`*.LAN`)
+## 8. Board
+
+- Board array `DS:048C` (copied from the start position `DS:AEF6` by
+  `0000:1483`): 64 bytes, file-major `(file-1)·8 + (rank-1)`, piece type in
+  bits 0–2 (K=1, Q=2, N=3, B=4, R=5, P=6), bit 3 = black. `0a1f:70ed` sets up
+  the initial position; `0000:1438` (new game) also places the kings
+  (`[AFB0]` e1, `[B148]` e8) and sets the castling rights to `0xF`.
+  **[verified]**
+- Geometry block `DS:0B8E`: piece set 3, silhouette set 4, dark-square
+  pattern 5 (`11 22 44 88`), board x 16, y 40, squares 40×40.
+- `0a1f:78ac` draws the 64 squares through `0a1f:74ac` (empty) and
+  `0a1f:7632` (piece). In colour mode (`[ADCF] & 1`, set by `0000:7eaf`)
+  the colours come from the table `DS:0F74…0F82`; a piece is drawn as square
+  background, silhouette (body colour) and outline. Options from
+  `FRITZ2.PAR`: `0x1D4` → `[B154]` flipped board, `0x1D6` → `[AF40]` swapped
+  colours. **[verified, incl. flipped board]**
+- Not translated yet: `0a1f:73b0` and the opening-book check, called only
+  when `[4256] != 0`; the square cursor drawn on h3 at start.
+
+## 9. Language files (`*.LAN`)
 
 Read block by block by `19e7:b0c4`. Header: word directory offset (`0x42`),
 word `0x4D2`, word block count (36). Directory: one dword file offset per
@@ -228,7 +256,7 @@ character, `[0BAC]` rows) and draws the text in `[B0C6]` at
 `x = 8·column`, `y = sy(y)`, inverted when `colour == [B0C6]`.
 Translated in `src/gui/ui_text.c`. **[verified]**
 
-## 9. Experiment log
+## 10. Experiment log
 
 | # | Hypothesis | Patch | Result |
 |---|---|---|---|
@@ -236,8 +264,9 @@ Translated in `src/gui/ui_text.c`. **[verified]**
 | 2 | `DS:703B` is the desktop pattern | `DS:703b=ff00ff00ff00ff00` | Confirmed: the background turns into horizontal blue and white stripes |
 | 3 | `FRITZ2.PAR` offsets `0x194` and `0x19E` hold `[AD6E]` and `[0F4E]` | PAR: `0x194=14`, `0x19e=4` (`FRITZ_FILES`) | Confirmed: yellow background and menu bar, red hatching and panel shadows; the port with the same PAR matches the capture in every comparable zone |
 | 4 | `FRITZ2.PAR` offset `0x004` names the language file | PAR: `0x004="FDEUTSCH.LAN"` | Confirmed: German menu bar; the port matches it pixel for pixel |
+| 5 | `FRITZ2.PAR` offset `0x1D4` flips the board | PAR: `0x1d4=1` | Confirmed: white at the top; the port's board matches pixel for pixel |
 
-## 10. Reconstructed functions
+## 11. Reconstructed functions
 
 | Original | C | Status |
 |---|---|---|
@@ -251,6 +280,9 @@ Translated in `src/gui/ui_text.c`. **[verified]**
 | `0a1f:67c3`, `0a1f:65bb`, `0a1f:64b5` | `ui_message`, `ui_text_line` | complete |
 | `0000:2037` | `arrow_buttons` (desktop.c) | complete; drawn only with a mouse (`[AFB2]`, set by `0000:7d99` via int 33h) |
 | `0a1f:7d72` | `board_frame_draw` | complete |
+| `0a1f:78ac`, `0a1f:74ac`, `0a1f:7632` | `board_draw`, `board_draw_empty_square`, `board_draw_piece_square` | complete except the `[4256]` overlay |
+| `293b:a649`, `293b:a6b0` | `gfx_draw_piece` | complete for VGA |
+| `0a1f:70ed` | `game_board_setup` | complete |
 | `0000:2512` final menu bar and line (`0a1f:67c3(0x1C…)`, `293b:9ab2`) | `desktop_draw` | complete |
 | `19e7:4294` (colours and language only) | `settings_defaults`, `settings_load_par` | partial |
 
@@ -259,7 +291,7 @@ screenshot pixel for pixel wherever the desktop is visible, with the
 original PAR and with the modified one of experiment 3, including the
 outer frame and the message box. `tests/gui/screens.sh` runs these checks.
 
-## 11. Tools
+## 12. Tools
 
 | Tool | Use |
 |---|---|
@@ -281,10 +313,10 @@ tools/compare/dosbox-run.sh build/captures 15 F1 Up Return sleep:1.5 ctrl+F5
 Note: under Wayland DOSBox runs through XWayland. XTest works as long as
 the DOSBox window has focus.
 
-## 12. Next steps
+## 13. Next steps
 
-1. Squares and pieces: `0a1f:78ac` → `0a1f:74ac` (empty square) and
-   `0a1f:7632` (piece); then the remaining panels of `0000:2512`.
+1. Remaining panels of `0000:2512`: logo, clocks, status line, notation,
+   opening line; the square cursor.
 2. Decode the remaining `FRITZ2.PAR` fields.
 3. Annotate the Ghidra project with the names of the functions identified so far.
 4. Check whether `FRITZ2.BIN` is the engine: trace how `FRITZ2.EXE` loads it

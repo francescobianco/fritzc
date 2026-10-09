@@ -21,6 +21,7 @@
 293b:9fb1 gfx_draw_text_p pascal x y font pstring color mode
 293b:a044 gfx_draw_text pascal x y font string color mode
 293b:1dee pstrcpy_from_c pascal dst src
+293b:a649 gfx_draw_piece pascal x y set piece variant color
 293b:1f81 mouse_hide keep
 293b:1f6e mouse_show keep
 
@@ -35,6 +36,9 @@
 0a1f:78ac board_draw keep
 0a1f:74ac board_draw_empty_square keep
 0a1f:7632 board_draw_piece_square keep
+0a1f:70ed game_board_setup keep
+0000:1438 new_game_position keep
+0000:1483 board_from_start_position keep
 0a1f:65bb ui_text_line keep
 0a1f:64b5 ui_clear_text_area keep
 19e7:22ac message_get keep

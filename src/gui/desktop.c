@@ -82,10 +82,12 @@ static void arrow_buttons(Screen *screen, const Settings *settings, uint8_t colo
 
 /* 0000:2512. Translated: the background, the frame (0000:05f3) and the
    arrow buttons (0000:2037) and the menu bar at the end. 0000:022f draws
-   nothing on the start screen; 0a1f:7d72 is board_frame_draw. Not yet
-   translated, in call order: 0a1f:78ac (squares and pieces), 0a1f:00a4, 0000:21c5, 19e7:a994 or the 0a1f:7a98
+   nothing on the start screen; 0a1f:7d72 is board_frame_draw and
+   0a1f:78ac(DS:0B8E, DS:048C) is board_draw. Not yet
+   translated, in call order: 0a1f:00a4, 0000:21c5, 19e7:a994 or the 0a1f:7a98
    group, 0000:2372, 0000:24ee, 0000:31e5. */
-void desktop_draw(Screen *screen, const Settings *settings, const Language *lan)
+void desktop_draw(Screen *screen, const Settings *settings, const Language *lan,
+                  const GameBoard *board)
 {
     const Layout *l = &layout_vga;
     uint16_t top = l->menu_bar_height + 1;
@@ -100,6 +102,7 @@ void desktop_draw(Screen *screen, const Settings *settings, const Language *lan)
                      GFX_PATTERN_DESKTOP, GFX_ROP_COPY);
     desktop_frame(screen, settings);
     board_frame_draw(screen, settings);
+    board_draw(screen, settings, board);
     arrow_buttons(screen, settings, (uint8_t)settings->color_b0c6, 0x23, 0xa0, 0x84, 0x18e);
 
     /* Menu bar text and the line below it. */

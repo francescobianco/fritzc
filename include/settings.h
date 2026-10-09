@@ -14,6 +14,8 @@ typedef struct Settings {
     uint16_t color_b112;         /* [B112]: board frame, second ring */
     uint16_t color_ac30;         /* [AC30]: board frame */
     uint16_t colors_0f4c[28];    /* DS:0F4C..0F83: colour table */
+    uint8_t flip_board;          /* [B154] */
+    uint8_t swap_colors;         /* [AF40] */
 } Settings;
 
 /* Defaults applied by 19e7:4294 when called with reload == 0, for the VGA

@@ -20,11 +20,13 @@
 #include "desktop.h"
 #include "exe.h"
 #include "font.h"
+#include "game_board.h"
 #include "gfx.h"
 #include "language.h"
 #include "platform.h"
 #include "screen.h"
 #include "settings.h"
+#include "sprites.h"
 
 typedef enum View { VIEW_NATIVE, VIEW_REFERENCE, VIEW_DIFF } View;
 
@@ -46,9 +48,12 @@ static const char *data_file(const char *dir, const char *name)
 
 static void render(Screen *screen, const Settings *settings, const Language *lan)
 {
+    GameBoard board;
+
+    game_board_setup(&board);
     gfx_set_scale(&gfx_scale_vga);
     screen_clear(screen, COLOR_BLACK);
-    desktop_draw(screen, settings, lan);
+    desktop_draw(screen, settings, lan, &board);
 }
 
 int main(int argc, char **argv)
@@ -89,8 +94,8 @@ int main(int argc, char **argv)
         fprintf(stderr, "%s\n", error);
         return 1;
     }
-    if (!fonts_load(&exe)) {
-        fprintf(stderr, "FRITZ2.EXE: font data not found\n");
+    if (!fonts_load(&exe) || !sprites_load(&exe)) {
+        fprintf(stderr, "FRITZ2.EXE: font or bitmap data not found\n");
         return 1;
     }
 
