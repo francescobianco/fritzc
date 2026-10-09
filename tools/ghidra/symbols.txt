@@ -80,3 +80,8 @@
 19e7:4294 settings_load cdecl reload:byte
 19e7:3ee4 settings_open cdecl mode
 0a1f:c4e0 select_card_descriptor cdecl mode p2
+
+# Engine interface (FRITZ2.BIN)
+293b:ae86 engine_set pascal p_off p_seg
+293b:aea8 engine_call keep
+293b:aeb5 engine_make_move pascal move

@@ -51,8 +51,8 @@ capture() {  # NAME PAR
     fi
 }
 
-# The whole screen is reconstructed except the opening book size at the
-# right of the book line (x 554-595, y 348-363), which needs the book loader.
+# The whole screen is reconstructed except the number at the right of the
+# book line (x 554-595, y 348-363), a value of the engine module.
 REGIONS="0,0,640,348 0,348,554,364 596,348,640,364 0,364,640,480"
 
 status=0

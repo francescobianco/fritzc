@@ -96,8 +96,9 @@ void clocks_draw(Screen *screen, const Settings *settings, const UiState *ui)
         gfx_draw_text_p(screen, x, row1, l->text_font, marker, ink, 0);
 }
 
-/* The book size shown at column 25 (1 << book[0xFE], formatted by
-   0a1f:690d) needs the opening book loader, not translated yet. */
+/* The number at column 25 is 1 << p[0xFE], p = [7190] being the engine
+   module block (docs/engine-analysis.md); not available until the engine
+   interface is reconstructed. */
 void book_line_draw(Screen *screen, const Settings *settings, const UiState *ui)
 {
     const Layout *l = &layout_vga;
