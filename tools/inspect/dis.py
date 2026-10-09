@@ -1,8 +1,7 @@
 #!/usr/bin/env python3
-"""Disassembla un intervallo di FRITZ2.UNP.EXE in indirizzi SEG:OFF.
+"""Disassembles a range of FRITZ2.UNP.EXE using SEG:OFF addresses.
 
-Uso: dis.py EXE SEG:OFF [N_ISTRUZIONI]
-Le chiamate far a segmenti noti sono annotate con il target lineare.
+Usage: dis.py EXE SEG:OFF [N_INSTRUCTIONS]
 """
 import struct
 import sys

@@ -1,14 +1,14 @@
 #!/bin/sh
-# Avvia Fritz 2.51 in DOSBox su una copia temporanea della distribuzione,
-# invia opzionalmente una sequenza di tasti e raccoglie gli screenshot.
+# Runs Fritz 2.51 in DOSBox on a temporary copy of the distribution,
+# optionally sends a key sequence, and collects the screenshots.
 #
-# Uso: tools/compare/dosbox-run.sh OUTDIR [SECONDI] [TASTI...]
-#   I tasti usano la sintassi di tools/inspect/xkeys.py; "ctrl+F5" salva
-#   uno screenshot PNG nativo (640x480, palette) in OUTDIR.
-# Esempio: tools/compare/dosbox-run.sh out 15 F1 Up Return sleep:1 ctrl+F5
+# Usage: tools/compare/dosbox-run.sh OUTDIR [SECONDS] [KEYS...]
+#   Keys use the tools/inspect/xkeys.py syntax; "ctrl+F5" saves a native
+#   PNG screenshot (640x480, palettized) into OUTDIR.
+# Example: tools/compare/dosbox-run.sh out 15 F1 Up Return sleep:1 ctrl+F5
 #
-# FRITZ_EXE=percorso/FRITZ2.EXE sostituisce l'eseguibile nella copia di lavoro
-# (es. una versione decompressa o modificata con tools/compare/patch.py).
+# FRITZ_EXE=path/FRITZ2.EXE replaces the executable in the working copy
+# (e.g. the unpacked build or one patched with tools/compare/patch.py).
 set -eu
 root=$(cd "$(dirname "$0")/../.." && pwd)
 out=$(mkdir -p "$1" && cd "$1" && pwd); shift
@@ -27,7 +27,7 @@ cp -r "$root/dos/fritz251" "$work/c/FRITZ"
 
 timeout "$secs" dosbox -conf "$work/dosbox.conf" -noconsole >/dev/null 2>&1 &
 pid=$!
-sleep 7   # attesa caricamento del programma
+sleep 7   # wait for the program to load
 [ $# -gt 0 ] && python3 -I "$root/tools/inspect/xkeys.py" "$@"
 wait $pid || true
 ls "$out"

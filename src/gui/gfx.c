@@ -1,6 +1,6 @@
 #include "gfx.h"
 
-/* DS:7033..706A, puntati dalla tabella DS:7023. */
+/* DS:7033..706A, pointed to by the table at DS:7023. */
 static const uint8_t patterns[8][8] = {
     {0x55, 0xaa, 0x55, 0xaa, 0x55, 0xaa, 0x55, 0xaa},
     {0x88, 0x22, 0x88, 0x22, 0x88, 0x22, 0x88, 0x22},
@@ -21,7 +21,7 @@ void gfx_set_scale(const GfxScale *scale)
     current = *scale;
 }
 
-/* mul word / add ax / div word: la somma non propaga il riporto in DX. */
+/* mul word / add ax / div word: the addition does not carry into DX. */
 static uint16_t scale16(uint16_t v, uint16_t mul, uint16_t add, uint16_t div)
 {
     uint32_t product = (uint32_t)v * mul;
@@ -49,8 +49,8 @@ static uint8_t apply_rop(uint8_t dst, uint8_t color, uint8_t rop)
     }
 }
 
-/* Driver VGA 293b:9ec4 + 293b:9b2c: per ogni riga la bit mask è il byte
-   del retino indicizzato da y & 7; i bit a 0 lasciano il pixel invariato. */
+/* VGA driver 293b:9ec4 + 293b:9b2c: on each row the bit mask is the pattern
+   byte indexed by y & 7; zero bits leave the pixel unchanged. */
 void gfx_fill_pattern(Screen *screen, uint16_t x, uint16_t y, uint16_t w,
                       uint16_t h, uint8_t color, uint16_t pattern, uint8_t rop)
 {

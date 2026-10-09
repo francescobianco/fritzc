@@ -1,11 +1,11 @@
-/* Fritz 2.5 Reborn — prototipo della schermata principale (Fase 3).
+/* Fritz 2.5 Reborn — main screen prototype (phase 3).
  *
- * Ogni elemento disegnato è una traduzione delle routine di FRITZ2.EXE
- * (indirizzi SEG:OFF dell'eseguibile decompresso).
+ * Everything drawn here is a translation of FRITZ2.EXE routines
+ * (SEG:OFF addresses in the unpacked executable).
  *
- * Uso: fritz [--scale N] [--reference cattura.bmp] [--dump out.bmp]
- *   Con --reference: Tab alterna replica/riferimento, D mostra le differenze
- *   (pixel diversi in rosso), Esc esce.
+ * Usage: fritz [--scale N] [--reference capture.bmp] [--dump out.bmp]
+ *   With --reference: Tab toggles port/reference, D shows the differences
+ *   (mismatching pixels in red), Esc quits.
  */
 #include <stdio.h>
 #include <stdlib.h>
@@ -26,7 +26,7 @@ static void make_diff(const Screen *a, const Screen *b, Screen *out)
         for (int x = 0; x < SCREEN_WIDTH; x++)
             out->pixels[y][x] = a->pixels[y][x] == b->pixels[y][x]
                 ? (a->pixels[y][x] == COLOR_BLACK ? COLOR_BLACK : COLOR_LIGHT_GRAY)
-                : 12; /* rosso chiaro */
+                : 12; /* light red */
 }
 
 int main(int argc, char **argv)
@@ -45,7 +45,7 @@ int main(int argc, char **argv)
         else if (strcmp(argv[i], "--dump") == 0 && i + 1 < argc)
             dump_path = argv[++i];
         else {
-            fprintf(stderr, "uso: %s [--scale N] [--reference cattura.bmp] [--dump out.bmp]\n", argv[0]);
+            fprintf(stderr, "usage: %s [--scale N] [--reference capture.bmp] [--dump out.bmp]\n", argv[0]);
             return 1;
         }
     }
@@ -53,7 +53,7 @@ int main(int argc, char **argv)
         scale = 1;
 
     if (dump_path) {
-        /* Rendering senza finestra: salva il frame ed esce. */
+        /* Headless rendering: save the frame and exit. */
         gfx_set_scale(&gfx_scale_vga);
         screen_clear(&native, COLOR_BLACK);
         desktop_draw(&native);
@@ -74,7 +74,7 @@ int main(int argc, char **argv)
         for (int y = 0; y < SCREEN_HEIGHT; y++)
             for (int x = 0; x < SCREEN_WIDTH; x++)
                 different += native.pixels[y][x] != reference.pixels[y][x];
-        printf("pixel diversi dal riferimento: %d su %d\n",
+        printf("pixels differing from reference: %d of %d\n",
                different, SCREEN_WIDTH * SCREEN_HEIGHT);
     }
 

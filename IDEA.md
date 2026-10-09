@@ -1,318 +1,318 @@
 # Fritz 2.5 Reborn
-## Progetto di reverse engineering e porting nativo in C dello storico software scacchistico DOS
+## A reverse engineering and native C porting project for the classic DOS chess software
 
-### 1. Visione del progetto
+### 1. Project vision
 
-L'obiettivo è realizzare un porting nativo e multipiattaforma di **Fritz 2.5 / Fritz 2.51**, lo storico programma di scacchi per MS-DOS sviluppato negli anni Novanta da Frans Morsch e distribuito da ChessBase.
+The goal is to build a native, cross-platform port of **Fritz 2.5 / Fritz 2.51**, the classic MS-DOS chess program developed in the nineties by Frans Morsch and distributed by ChessBase.
 
-Il progetto intende recuperare e preservare il funzionamento del programma originale, ricostruendone in linguaggio C tanto il motore scacchistico quanto l'interfaccia utente.
+The project aims to recover and preserve the behavior of the original program, reconstructing in C both the chess engine and the user interface.
 
-Non si vuole creare un nuovo programma di scacchi semplicemente ispirato a Fritz, né distribuire un emulatore DOS contenente il programma originale.
+The intent is neither to create a new chess program merely inspired by Fritz, nor to distribute a DOS emulator bundling the original program.
 
-Si vuole ottenere una nuova implementazione nativa che riproduca, nel modo più fedele possibile, l'esperienza del software storico.
+The aim is to obtain a new native implementation that reproduces, as faithfully as possible, the experience of the historical software.
 
-Il risultato dovrà essere utilizzabile sui sistemi operativi moderni:
+The result must be usable on modern operating systems:
 
 - Linux
 - Windows
 - macOS
 
-Senza richiedere DOSBox, macchine virtuali o altri ambienti DOS.
+Without requiring DOSBox, virtual machines or other DOS environments.
 
-La priorità è la **fedeltà storica e funzionale**, non il miglioramento del programma originale.
+The priority is **historical and functional fidelity**, not improving the original program.
 
-### 2. Filosofia di sviluppo
+### 2. Development philosophy
 
-Il progetto adotta alcuni principi fondamentali.
+The project adopts a few fundamental principles.
 
-**Fedeltà prima della modernizzazione**
+**Fidelity before modernization**
 
-Le caratteristiche originali devono essere comprese, documentate e possibilmente preservate prima di introdurre miglioramenti.
+The original features must be understood, documented and, where possible, preserved before introducing improvements.
 
-**Reverse engineering guidato dall'osservazione**
+**Observation-driven reverse engineering**
 
-Ogni componente deve essere studiato attraverso l'analisi dei file originali, del codice macchina e del comportamento del programma in esecuzione.
+Every component must be studied through analysis of the original files, the machine code and the behavior of the running program.
 
-**Implementazione comprensibile**
+**Understandable implementation**
 
-Il codice risultante deve essere scritto in C moderno, organizzato in moduli semplici e mantenibili.
+The resulting code must be written in modern C, organized into simple, maintainable modules.
 
-Non è prioritario riprodurre la struttura interna originaria se questa dipende da limitazioni dell'architettura DOS.
+Reproducing the original internal structure is not a priority if it depends on limitations of the DOS architecture.
 
-È invece importante riprodurre i comportamenti osservabili e, soprattutto per il motore scacchistico, gli algoritmi e le decisioni originali.
+What matters instead is reproducing the observable behavior and, above all for the chess engine, the original algorithms and decisions.
 
-**Assenza di emulazione nel prodotto finale**
+**No emulation in the final product**
 
-DOSBox e gli strumenti di emulazione saranno utilizzati esclusivamente come strumenti di analisi, debugging e confronto.
+DOSBox and emulation tools will be used exclusively as tools for analysis, debugging and comparison.
 
-**Separazione tra motore e interfaccia**
+**Separation between engine and interface**
 
-La logica scacchistica deve essere indipendente dall'interfaccia grafica.
+The chess logic must be independent of the graphical interface.
 
-Il motore dovrà poter essere compilato ed eseguito anche separatamente.
+The engine must also be buildable and runnable on its own.
 
-### 3. Ambito del reverse engineering
+### 3. Scope of the reverse engineering
 
-Il lavoro riguarda due grandi sottosistemi.
+The work covers two major subsystems.
 
-#### 3.1 Motore scacchistico
+#### 3.1 Chess engine
 
-Dovranno essere analizzate e possibilmente ricostruite le seguenti componenti:
+The following components must be analyzed and, where possible, reconstructed:
 
-- Rappresentazione interna della scacchiera.
-- Codifica dei pezzi e delle mosse.
-- Generazione delle mosse pseudolegali e legali.
-- Applicazione e annullamento delle mosse.
-- Gestione di arrocco, en passant e promozione.
-- Rilevamento di scacco, scacco matto e stallo.
-- Regole di patta.
-- Valutazione statica della posizione.
-- Ricerca delle mosse.
-- Ordinamento delle mosse.
-- Eventuali tabelle di trasposizione.
-- Gestione del tempo.
-- Livelli di difficoltà.
-- Gestione delle aperture.
-- Eventuali euristiche o ottimizzazioni specifiche.
+- Internal board representation.
+- Encoding of pieces and moves.
+- Generation of pseudo-legal and legal moves.
+- Making and unmaking moves.
+- Handling of castling, en passant and promotion.
+- Detection of check, checkmate and stalemate.
+- Draw rules.
+- Static position evaluation.
+- Move search.
+- Move ordering.
+- Transposition tables, if any.
+- Time management.
+- Difficulty levels.
+- Opening handling.
+- Any specific heuristics or optimizations.
 
-Non bisogna dare per scontato che Fritz utilizzi le stesse strutture dati o gli stessi algoritmi dei motori moderni.
+It must not be taken for granted that Fritz uses the same data structures or the same algorithms as modern engines.
 
-Gli algoritmi devono essere identificati attraverso prove e analisi del binario.
+The algorithms must be identified through experiments and analysis of the binary.
 
-L'obiettivo ideale è ottenere, a parità di posizione e condizioni di ricerca, lo stesso comportamento decisionale del motore originale.
+The ideal goal is to obtain, given the same position and search conditions, the same decision-making behavior as the original engine.
 
-#### 3.2 Interfaccia grafica
+#### 3.2 Graphical interface
 
-Il progetto comprende anche la ricostruzione dell'intera interfaccia utente.
+The project also includes the reconstruction of the entire user interface.
 
-Saranno oggetto di analisi:
+The following will be analyzed:
 
-- Schermata principale.
-- Scacchiera.
-- Set di pezzi.
-- Palette cromatiche.
-- Tipografia e caratteri.
-- Menu.
-- Sottomenu.
-- Finestre di dialogo.
-- Pulsanti e controlli.
-- Gestione del mouse.
-- Scorciatoie da tastiera.
-- Orologi.
-- Pannelli informativi.
-- Notazione delle mosse.
-- Visualizzazione delle analisi.
-- Impostazioni e configurazione.
-- Gestione delle partite e degli eventuali database.
-- Messaggi e finestre di conferma.
-- Comportamento delle finestre e delle interazioni.
+- Main screen.
+- Chessboard.
+- Piece set.
+- Color palettes.
+- Typography and fonts.
+- Menus.
+- Submenus.
+- Dialog boxes.
+- Buttons and controls.
+- Mouse handling.
+- Keyboard shortcuts.
+- Clocks.
+- Information panels.
+- Move notation.
+- Analysis display.
+- Settings and configuration.
+- Management of games and any databases.
+- Messages and confirmation dialogs.
+- Behavior of windows and interactions.
 
-Questo elenco rappresenta l'ambito di indagine: le funzionalità realmente presenti devono essere accertate nella versione originale.
+This list represents the scope of investigation: the features actually present must be ascertained in the original version.
 
-Non basta riprodurre una schermata simile. È necessario ricostruire anche il comportamento dell'interfaccia.
+Reproducing a similar-looking screen is not enough. The behavior of the interface must be reconstructed as well.
 
-### 4. Tecnologia proposta
+### 4. Proposed technology
 
-Il linguaggio principale sarà **C11**.
+The main language will be **C11**.
 
-Per l'interfaccia grafica si propone **SDL3**.
+**SDL3** is proposed for the graphical interface.
 
-SDL3 verrà utilizzata come livello di astrazione multipiattaforma per:
+SDL3 will be used as a cross-platform abstraction layer for:
 
-- Creazione e gestione della finestra.
-- Rendering grafico.
-- Eventi del mouse.
-- Eventi della tastiera.
-- Gestione del tempo.
-- Eventuale riproduzione audio.
+- Window creation and management.
+- Graphics rendering.
+- Mouse events.
+- Keyboard events.
+- Time management.
+- Audio playback, if needed.
 
-L'interfaccia vera e propria sarà implementata in C, senza utilizzare framework di widget moderni.
+The interface itself will be implemented in C, without using modern widget frameworks.
 
-Questo permette di preservare l'aspetto e il comportamento dell'interfaccia DOS originale, senza dover adattare i suoi controlli a quelli di GTK, Qt, Cocoa o Win32.
+This makes it possible to preserve the look and behavior of the original DOS interface, without having to adapt its controls to those of GTK, Qt, Cocoa or Win32.
 
-#### 4.1 Rendering a risoluzione virtuale
+#### 4.1 Rendering at a virtual resolution
 
-Una possibile strategia consiste nel creare una superficie grafica virtuale corrispondente alla risoluzione originale del programma.
+One possible strategy is to create a virtual graphics surface matching the program's original resolution.
 
-Tutti gli elementi saranno disegnati in coordinate virtuali.
+All elements will be drawn in virtual coordinates.
 
-L'immagine finale verrà poi scalata alla dimensione della finestra moderna.
+The final image will then be scaled to the size of the modern window.
 
-La risoluzione originale, la modalità video e le proporzioni dei pixel dovranno essere ricavate dall'analisi.
+The original resolution, the video mode and the pixel aspect ratio must be determined through analysis.
 
-Dovranno essere considerate:
+The following must be considered:
 
-- Scala intera per preservare i pixel.
-- Eventuale correzione del rapporto d'aspetto.
-- Rendering nearest-neighbor.
-- Modalità finestra.
-- Modalità a schermo intero.
-- Conversione delle coordinate del mouse tra finestra e superficie virtuale.
+- Integer scaling to preserve pixels.
+- Optional aspect ratio correction.
+- Nearest-neighbor rendering.
+- Windowed mode.
+- Fullscreen mode.
+- Conversion of mouse coordinates between the window and the virtual surface.
 
-La modalità predefinita dovrà privilegiare la fedeltà visiva.
+The default mode must favor visual fidelity.
 
-In futuro sarà possibile introdurre metodi di scaling alternativi senza alterare il rendering logico.
+In the future, alternative scaling methods may be introduced without altering the logical rendering.
 
-### 5. Reverse engineering del programma DOS
+### 5. Reverse engineering of the DOS program
 
-Il lavoro comincerà con un'analisi della distribuzione originale.
+The work will begin with an analysis of the original distribution.
 
-#### 5.1 Inventario dei file
+#### 5.1 File inventory
 
-Occorrerà identificare tutti i file presenti:
+All files present must be identified:
 
-- Eseguibili.
-- Librerie.
-- File di configurazione.
-- Database.
-- Libri di apertura.
-- Risorse grafiche.
-- Font.
-- File audio.
-- Eventuali dati compressi o proprietari.
+- Executables.
+- Libraries.
+- Configuration files.
+- Databases.
+- Opening books.
+- Graphics resources.
+- Fonts.
+- Audio files.
+- Any compressed or proprietary data.
 
-Per ogni file saranno registrati nome, dimensione, hash, struttura e possibile funzione.
+For each file, the name, size, hash, structure and likely purpose will be recorded.
 
-Non si assume che il motore sia contenuto in un eseguibile separato dall'interfaccia: questa separazione dovrà essere verificata.
+It is not assumed that the engine is contained in an executable separate from the interface: this separation must be verified.
 
-#### 5.2 Analisi dell'eseguibile
+#### 5.2 Executable analysis
 
-Si dovranno identificare:
+The following must be identified:
 
-- Formato dell'eseguibile DOS.
-- Architettura di esecuzione.
-- Codice a 16 o 32 bit.
-- Eventuali DOS extender.
-- Segmentazione e modello di memoria.
-- Importazioni e chiamate di sistema.
-- Routine di inizializzazione.
-- Eventuali sistemi di compressione o packing.
+- DOS executable format.
+- Execution architecture.
+- 16-bit or 32-bit code.
+- Any DOS extenders.
+- Segmentation and memory model.
+- Imports and system calls.
+- Initialization routines.
+- Any compression or packing schemes.
 
-Gli strumenti principali saranno:
+The main tools will be:
 
 **Ghidra**
 
-Per disassemblaggio, analisi delle funzioni, riferimenti incrociati e ricostruzione delle strutture dati.
+For disassembly, function analysis, cross-references and reconstruction of data structures.
 
-**DOSBox con supporto al debugging**
+**DOSBox with debugging support**
 
-Per osservare l'esecuzione del programma, tracciare il codice e individuare le routine associate alle operazioni dell'utente.
+To observe program execution, trace the code and locate the routines associated with user operations.
 
 **Python**
 
-Per analizzare formati binari, individuare tabelle, elaborare dump di memoria e sviluppare strumenti di confronto.
+To analyze binary formats, locate tables, process memory dumps and develop comparison tools.
 
-**Toolchain C**
+**C toolchain**
 
-Per implementare e verificare progressivamente i componenti recuperati.
+To progressively implement and verify the recovered components.
 
-L'identificazione corretta dell'ambiente di esecuzione è una fase preliminare indispensabile.
+Correctly identifying the execution environment is an essential preliminary step.
 
-### 6. Reverse engineering dell'interfaccia
+### 6. Reverse engineering of the interface
 
-Per l'interfaccia si adotta un approccio principalmente comportamentale.
+For the interface, a primarily behavioral approach is adopted.
 
-Non sarà necessario ricostruire istruzione per istruzione il codice originale delle routine grafiche.
+It will not be necessary to reconstruct the original code of the graphics routines instruction by instruction.
 
-Si dovranno invece documentare e riprodurre gli stati visivi e le transizioni causate dalle azioni dell'utente.
+Instead, the visual states and the transitions caused by user actions must be documented and reproduced.
 
-#### 6.1 Catalogazione delle schermate
+#### 6.1 Cataloguing the screens
 
-Il programma originale sarà avviato in DOSBox.
+The original program will be run in DOSBox.
 
-Ogni schermata verrà documentata attraverso screenshot e descrizioni.
+Each screen will be documented through screenshots and descriptions.
 
-Per ogni elemento si registreranno:
+For each element, the following will be recorded:
 
-- Posizione.
-- Dimensioni.
-- Colori.
+- Position.
+- Size.
+- Colors.
 - Font.
-- Aspetto grafico.
-- Stato iniziale.
-- Interazioni disponibili.
-- Eventi generati.
-- Effetti sugli altri componenti.
+- Graphical appearance.
+- Initial state.
+- Available interactions.
+- Generated events.
+- Effects on other components.
 
-Dovrà essere predisposto un catalogo completo dei menu e delle finestre.
+A complete catalogue of menus and windows must be prepared.
 
-#### 6.2 Ricostruzione dei controlli
+#### 6.2 Reconstruction of the controls
 
-Si svilupperà una piccola libreria di widget dedicata.
+A small dedicated widget library will be developed.
 
-Questa potrà includere:
+It may include:
 
-- Menu.
-- Menu a cascata.
-- Pulsanti.
-- Finestre di dialogo.
-- Caselle di testo.
-- Liste.
-- Barre di scorrimento.
-- Pannelli.
-- Etichette.
-- Controlli scacchistici specifici.
+- Menus.
+- Cascading menus.
+- Buttons.
+- Dialog boxes.
+- Text boxes.
+- Lists.
+- Scrollbars.
+- Panels.
+- Labels.
+- Chess-specific controls.
 
-La libreria non dovrà essere generalizzata oltre quanto necessario.
+The library must not be generalized beyond what is necessary.
 
-Lo scopo è riprodurre Fritz, non realizzare un framework GUI universale.
+The purpose is to reproduce Fritz, not to build a universal GUI framework.
 
-#### 6.3 Asset grafici
+#### 6.3 Graphics assets
 
-Occorrerà stabilire se i pezzi, i font e gli elementi dell'interfaccia siano contenuti in file esterni, incorporati nell'eseguibile oppure generati proceduralmente.
+It must be established whether the pieces, fonts and interface elements are contained in external files, embedded in the executable or generated procedurally.
 
-Nel caso di formati proprietari si potranno realizzare decoder dedicati.
+In the case of proprietary formats, dedicated decoders can be written.
 
-Nel caso di disegno procedurale si potranno ricostruire le primitive grafiche equivalenti.
+In the case of procedural drawing, the equivalent graphics primitives can be reconstructed.
 
-L'uso e la redistribuzione delle risorse originali dovranno essere valutati separatamente dal loro studio tecnico, rispettando i diritti applicabili.
+The use and redistribution of the original resources must be assessed separately from their technical study, respecting the applicable rights.
 
-### 7. Reverse engineering del motore
+### 7. Reverse engineering of the engine
 
-Il motore richiede un processo differente.
+The engine requires a different process.
 
-In questo caso non basta ottenere un programma capace di giocare a scacchi.
+In this case, it is not enough to obtain a program capable of playing chess.
 
-È importante comprendere il funzionamento del motore originale.
+It is important to understand how the original engine works.
 
-#### 7.1 Identificazione delle strutture dati
+#### 7.1 Identification of the data structures
 
-Il primo obiettivo sarà localizzare e interpretare la rappresentazione della posizione.
+The first goal will be to locate and interpret the position representation.
 
-Si cercheranno:
+The following will be searched for:
 
-- Array della scacchiera.
-- Codifica dei pezzi.
-- Informazioni sul tratto.
-- Diritti di arrocco.
-- Stato en passant.
-- Stack delle mosse.
-- Strutture per la ricerca.
+- Board arrays.
+- Piece encoding.
+- Side-to-move information.
+- Castling rights.
+- En passant state.
+- Move stack.
+- Search structures.
 
-Le informazioni recuperate saranno documentate prima di procedere con una riscrittura.
+The recovered information will be documented before proceeding with a rewrite.
 
-#### 7.2 Identificazione della ricerca
+#### 7.2 Identification of the search
 
-Occorrerà ricostruire il flusso di esecuzione che conduce dalla posizione corrente alla scelta della mossa.
+The execution flow leading from the current position to the choice of a move must be reconstructed.
 
-Verranno studiate le possibili routine di:
+The possible routines for the following will be studied:
 
-- Generazione mosse.
-- Valutazione.
-- Ricerca ricorsiva.
-- Potatura.
-- Quiescenza.
-- Ordinamento delle mosse.
-- Controllo del tempo.
-- Interruzione della ricerca.
+- Move generation.
+- Evaluation.
+- Recursive search.
+- Pruning.
+- Quiescence.
+- Move ordering.
+- Time control.
+- Search interruption.
 
-Non si presuppone alcuna specifica implementazione di alpha-beta, negamax o altre tecniche finché non sarà confermata.
+No specific implementation of alpha-beta, negamax or other techniques is assumed until it is confirmed.
 
-#### 7.3 Riscrittura in C
+#### 7.3 Rewrite in C
 
-Le funzioni recuperate saranno progressivamente reimplementate in C.
+The recovered functions will be progressively reimplemented in C.
 
-Una possibile API moderna potrebbe essere:
+A possible modern API could be:
 
 ```c
 typedef struct Position Position;
@@ -344,76 +344,76 @@ Move find_best_move(
 );
 ```
 
-Le firme sono indicative e non rappresentano strutture recuperate da Fritz.
+The signatures are indicative and do not represent structures recovered from Fritz.
 
-L'architettura definitiva dovrà riflettere quanto emerso dall'analisi.
+The final architecture must reflect what emerges from the analysis.
 
-La riscrittura deve privilegiare equivalenza algoritmica e chiarezza.
+The rewrite must favor algorithmic equivalence and clarity.
 
-Eventuali ottimizzazioni saranno introdotte solo dopo aver ottenuto un comportamento verificabile.
+Any optimizations will be introduced only after verifiable behavior has been achieved.
 
-### 8. Verifica della fedeltà
+### 8. Fidelity verification
 
-Il software DOS originale rappresenterà il riferimento comportamentale.
+The original DOS software will serve as the behavioral reference.
 
-Il porting nativo dovrà essere sottoposto a test di confronto.
+The native port must undergo comparison testing.
 
-#### 8.1 Test del motore
+#### 8.1 Engine tests
 
-Le due versioni riceveranno le stesse posizioni.
+Both versions will be given the same positions.
 
-Quando disponibili, verranno confrontati:
+Where available, the following will be compared:
 
-- Mosse generate.
-- Mosse selezionate.
-- Valutazioni.
-- Varianti principali.
-- Profondità raggiunta.
-- Reazioni a condizioni particolari.
-- Risultati in posizioni tattiche.
-- Comportamento nei finali.
+- Generated moves.
+- Selected moves.
+- Evaluations.
+- Principal variations.
+- Depth reached.
+- Reactions to special conditions.
+- Results in tactical positions.
+- Endgame behavior.
 
-Per ottenere confronti significativi sarà necessario controllare le condizioni di ricerca.
+To obtain meaningful comparisons, the search conditions will need to be controlled.
 
-Il tempo di esecuzione su processori moderni non corrisponde a quello del software originale.
+Execution time on modern processors does not match that of the original software.
 
-Pertanto sarà preferibile confrontare profondità, nodi o altri criteri deterministici, quando ricostruibili, anziché basarsi unicamente sul tempo.
+Therefore it will be preferable to compare depth, nodes or other deterministic criteria, when they can be reconstructed, rather than relying solely on time.
 
-#### 8.2 Test dell'interfaccia
+#### 8.2 Interface tests
 
-Ogni schermata ricostruita verrà confrontata visivamente con uno screenshot della versione DOS.
+Each reconstructed screen will be visually compared with a screenshot of the DOS version.
 
-Verranno analizzate:
+The following will be analyzed:
 
-- Coordinate.
-- Proporzioni.
+- Coordinates.
+- Proportions.
 - Palette.
-- Disposizione dei componenti.
-- Risposte agli input.
-- Sequenze di navigazione.
-- Transizioni tra stati.
+- Layout of components.
+- Responses to input.
+- Navigation sequences.
+- Transitions between states.
 
-Si potranno sviluppare test automatici che confrontino immagini e sequenze di eventi.
+Automated tests comparing images and event sequences may be developed.
 
-#### 8.3 Test funzionali
+#### 8.3 Functional tests
 
-Dovranno essere riprodotti scenari completi:
+Complete scenarios must be reproduced:
 
-- Avvio del programma.
-- Avvio di una nuova partita.
-- Inserimento delle mosse.
-- Partita contro il computer.
-- Navigazione dei menu.
-- Modifica delle opzioni.
-- Caricamento di una partita.
-- Salvataggio.
-- Chiusura del programma.
+- Program startup.
+- Starting a new game.
+- Entering moves.
+- Playing against the computer.
+- Menu navigation.
+- Changing options.
+- Loading a game.
+- Saving.
+- Closing the program.
 
-Le funzionalità effettivamente disponibili saranno determinate dall'analisi della versione originale.
+The features actually available will be determined by analyzing the original version.
 
-### 9. Architettura del progetto
+### 9. Project architecture
 
-Si propone una struttura modulare, con un nucleo scacchistico indipendente dall'ambiente grafico.
+A modular structure is proposed, with a chess core independent of the graphical environment.
 
 ```text
 fritz-reborn/
@@ -485,17 +485,17 @@ fritz-reborn/
 +-- cmake/
 ```
 
-Questa struttura è preliminare.
+This structure is preliminary.
 
-La directory `reference` sarà utilizzata per documentare come reperire ed eseguire la versione originale e per conservare eventuali manifest e risultati dell'analisi. I binari e gli asset originali non dovranno essere inclusi automaticamente nel repository pubblico.
+The `reference` directory will be used to document how to obtain and run the original version and to keep any manifests and analysis results. The original binaries and assets must not be automatically included in the public repository.
 
-### 10. Interazione tra GUI e motore
+### 10. Interaction between GUI and engine
 
-L'interfaccia deve comunicare con il motore attraverso un insieme limitato di operazioni.
+The interface must communicate with the engine through a limited set of operations.
 
-Il controller dell'applicazione mantiene lo stato della partita e coordina i due sottosistemi.
+The application controller maintains the game state and coordinates the two subsystems.
 
-L'interfaccia produce eventi:
+The interface produces events:
 
 ```text
 Mouse click
@@ -516,223 +516,223 @@ Game State
 GUI Rendering
 ```
 
-L'architettura dovrà impedire che il ciclo di ricerca scacchistica blocchi la gestione degli eventi grafici.
+The architecture must prevent the chess search loop from blocking the handling of graphical events.
 
-La prima implementazione potrà utilizzare una ricerca cooperativa o un worker separato, a seconda delle caratteristiche della logica ricostruita.
+The first implementation may use a cooperative search or a separate worker, depending on the characteristics of the reconstructed logic.
 
-In ogni caso, la sincronizzazione tra ricerca e stato della partita deve essere esplicita.
+In any case, synchronization between the search and the game state must be explicit.
 
-### 11. Strategia di sviluppo
+### 11. Development strategy
 
-Non si tenterà di convertire automaticamente l'intero eseguibile DOS in C.
+No attempt will be made to automatically convert the entire DOS executable to C.
 
-Il progetto sarà sviluppato per incrementi verificabili.
+The project will be developed in verifiable increments.
 
-#### Fase 0 — Acquisizione e identificazione
+#### Phase 0 — Acquisition and identification
 
-- Reperire una distribuzione originale di Fritz 2.5 o 2.51.
-- Identificare esattamente la versione.
-- Calcolare gli hash dei file.
-- Individuare i componenti.
-- Verificare il formato dell'eseguibile.
-- Stabilire come eseguirlo correttamente.
+- Obtain an original distribution of Fritz 2.5 or 2.51.
+- Identify the exact version.
+- Compute the file hashes.
+- Identify the components.
+- Verify the executable format.
+- Determine how to run it correctly.
 
-**Risultato:** inventario tecnico completo della distribuzione.
+**Outcome:** complete technical inventory of the distribution.
 
-#### Fase 1 — Ambiente di riferimento
+#### Phase 1 — Reference environment
 
-- Configurare DOSBox.
-- Verificare il funzionamento del programma.
-- Documentare le impostazioni dell'ambiente.
-- Registrare schermate e interazioni.
-- Preparare posizioni di prova riproducibili.
+- Configure DOSBox.
+- Verify that the program works.
+- Document the environment settings.
+- Record screens and interactions.
+- Prepare reproducible test positions.
 
-**Risultato:** ambiente di riferimento per il confronto con il porting.
+**Outcome:** reference environment for comparison with the port.
 
-#### Fase 2 — Analisi dell'interfaccia
+#### Phase 2 — Interface analysis
 
-- Catalogare le schermate.
-- Esplorare tutti i menu.
-- Identificare gli elementi grafici.
-- Studiare il sistema di coordinate.
-- Analizzare gli input.
-- Individuare eventuali risorse grafiche.
+- Catalogue the screens.
+- Explore all the menus.
+- Identify the graphical elements.
+- Study the coordinate system.
+- Analyze the inputs.
+- Locate any graphics resources.
 
-**Risultato:** specifica comportamentale e visiva della GUI.
+**Outcome:** behavioral and visual specification of the GUI.
 
-#### Fase 3 — Prototipo grafico SDL3
+#### Phase 3 — SDL3 graphics prototype
 
-- Creare una finestra nativa.
-- Implementare la superficie virtuale.
-- Riprodurre la schermata principale.
-- Disegnare la scacchiera.
-- Riprodurre i pezzi.
-- Implementare mouse e tastiera.
-- Ricostruire i primi menu.
+- Create a native window.
+- Implement the virtual surface.
+- Reproduce the main screen.
+- Draw the chessboard.
+- Reproduce the pieces.
+- Implement mouse and keyboard.
+- Reconstruct the first menus.
 
-**Risultato:** prima replica navigabile dell'interfaccia.
+**Outcome:** first navigable replica of the interface.
 
-#### Fase 4 — Analisi del motore
+#### Phase 4 — Engine analysis
 
-- Individuare le strutture dati.
-- Localizzare la generazione delle mosse.
-- Identificare le routine di ricerca.
-- Individuare la valutazione.
-- Studiare i livelli di gioco.
-- Documentare le dipendenze tra funzioni.
+- Locate the data structures.
+- Locate move generation.
+- Identify the search routines.
+- Locate the evaluation.
+- Study the playing levels.
+- Document the dependencies between functions.
 
-**Risultato:** mappa tecnica del motore originale.
+**Outcome:** technical map of the original engine.
 
-#### Fase 5 — Implementazione del motore in C
+#### Phase 5 — Engine implementation in C
 
-- Ricostruire la posizione.
-- Implementare la generazione delle mosse.
-- Implementare applicazione e annullamento.
-- Ricostruire la valutazione.
-- Ricostruire la ricerca.
-- Integrare le eventuali euristiche recuperate.
+- Reconstruct the position.
+- Implement move generation.
+- Implement making and unmaking moves.
+- Reconstruct the evaluation.
+- Reconstruct the search.
+- Integrate any recovered heuristics.
 
-**Risultato:** motore C indipendente dalla GUI.
+**Outcome:** C engine independent of the GUI.
 
-#### Fase 6 — Integrazione
+#### Phase 6 — Integration
 
-- Collegare il motore all'interfaccia.
-- Implementare il controller di partita.
-- Gestire le mosse dell'utente.
-- Gestire le mosse del computer.
-- Riprodurre orologi e indicatori.
-- Integrare caricamento e salvataggio.
+- Connect the engine to the interface.
+- Implement the game controller.
+- Handle user moves.
+- Handle computer moves.
+- Reproduce clocks and indicators.
+- Integrate loading and saving.
 
-**Risultato:** prima versione nativa utilizzabile.
+**Outcome:** first usable native version.
 
-#### Fase 7 — Verifica e compatibilità
+#### Phase 7 — Verification and compatibility
 
-- Confrontare gli algoritmi.
-- Confrontare le schermate.
-- Eseguire test di regressione.
-- Correggere divergenze.
-- Verificare la compatibilità delle risorse.
-- Testare Linux, Windows e macOS.
+- Compare the algorithms.
+- Compare the screens.
+- Run regression tests.
+- Fix divergences.
+- Verify resource compatibility.
+- Test on Linux, Windows and macOS.
 
-**Risultato:** porting validato rispetto al comportamento originale.
+**Outcome:** port validated against the original behavior.
 
-### 12. Interfaccia UCI opzionale
+### 12. Optional UCI interface
 
-Una volta ricostruito il motore, sarà possibile sviluppare un adattatore UCI.
+Once the engine has been reconstructed, it will be possible to develop a UCI adapter.
 
-Questo permetterebbe di utilizzare il motore storico con altri programmi di scacchi, tra cui Pragma Chess.
+This would allow the historical engine to be used with other chess programs, including Pragma Chess.
 
-L'interfaccia UCI non è necessaria per la replica originale e non deve influenzarne l'architettura grafica.
+The UCI interface is not required for the original replica and must not influence its graphical architecture.
 
-Sarà considerata una funzionalità aggiuntiva, implementabile dopo la ricostruzione del motore.
+It will be considered an additional feature, to be implemented after the engine has been reconstructed.
 
-### 13. Evoluzioni possibili
+### 13. Possible future developments
 
-Dopo aver raggiunto una replica soddisfacente potranno essere valutate alcune estensioni:
+Once a satisfactory replica has been achieved, some extensions may be considered:
 
-- Modalità finestra ridimensionabile.
-- Scaling grafico configurabile.
-- Supporto a schermi HiDPI.
-- Esportazione PGN.
-- Interfaccia UCI.
-- Supporto a formati moderni.
-- Integrazione con database esterni.
-- Modalità di analisi del motore.
-- Strumenti per confrontare il motore originale con motori moderni.
+- Resizable windowed mode.
+- Configurable graphics scaling.
+- HiDPI display support.
+- PGN export.
+- UCI interface.
+- Support for modern formats.
+- Integration with external databases.
+- Engine analysis mode.
+- Tools to compare the original engine with modern engines.
 
-Queste funzionalità dovranno rimanere opzionali e non compromettere l'esperienza originale.
+These features must remain optional and must not compromise the original experience.
 
-### 14. Questioni legali e distribuzione
+### 14. Legal issues and distribution
 
-Il progetto deve distinguere chiaramente tra reverse engineering, studio degli algoritmi, ricostruzione funzionale e distribuzione di materiali derivati.
+The project must clearly distinguish between reverse engineering, study of the algorithms, functional reconstruction and distribution of derived materials.
 
-Il fatto che una vecchia versione di Fritz sia reperibile gratuitamente non implica che il suo codice, i suoi asset o il software siano di pubblico dominio.
+The fact that an old version of Fritz is available for free does not imply that its code, its assets or the software are in the public domain.
 
-Le possibilità di decompilazione, interoperabilità e utilizzo dei risultati dipendono dalla normativa e dalle condizioni applicabili.
+The possibilities for decompilation, interoperability and use of the results depend on the applicable laws and terms.
 
-Si dovrà pertanto:
+It will therefore be necessary to:
 
-- Verificare lo stato dei diritti della versione originale.
-- Evitare la pubblicazione non autorizzata degli eseguibili originali.
-- Verificare la possibilità di redistribuire grafica, font e altre risorse.
-- Documentare la provenienza delle risorse.
-- Distinguere codice originale studiato e nuova implementazione.
-- Considerare un'implementazione indipendente del comportamento quando necessario.
-- Valutare un'autorizzazione specifica prima della distribuzione di materiali protetti o codice derivato.
+- Verify the rights status of the original version.
+- Avoid unauthorized publication of the original executables.
+- Verify whether graphics, fonts and other resources may be redistributed.
+- Document the provenance of resources.
+- Distinguish between studied original code and the new implementation.
+- Consider an independent implementation of the behavior when necessary.
+- Seek specific authorization before distributing protected materials or derived code.
 
-La scelta della licenza open source potrà essere effettuata soltanto dopo aver chiarito quali componenti possono essere legittimamente distribuiti.
+The choice of an open source license can only be made after clarifying which components can legitimately be distributed.
 
-### 15. Principali rischi tecnici
+### 15. Main technical risks
 
-**Codice DOS complesso**
+**Complex DOS code**
 
-L'eseguibile potrebbe utilizzare segmentazione, DOS extender, assembler ottimizzato o formati compressi.
+The executable might use segmentation, DOS extenders, optimized assembly or compressed formats.
 
-**Motore difficile da isolare**
+**Engine hard to isolate**
 
-Le funzioni scacchistiche potrebbero condividere strutture e stato globale con l'interfaccia.
+The chess functions might share structures and global state with the interface.
 
-**Asset non recuperabili direttamente**
+**Assets not directly recoverable**
 
-Font e grafica potrebbero essere compressi, incorporati o prodotti da routine proprietarie.
+Fonts and graphics might be compressed, embedded or produced by proprietary routines.
 
-**Comportamento non deterministico**
+**Non-deterministic behavior**
 
-Il motore potrebbe dipendere dal tempo, dalla macchina, dallo stato di memoria o da euristiche che rendono difficile un confronto esatto.
+The engine might depend on time, on the machine, on memory state or on heuristics that make an exact comparison difficult.
 
-**Fedeltà visiva**
+**Visual fidelity**
 
-La riproduzione corretta della modalità video DOS potrebbe richiedere attenzione alle palette, alle proporzioni dei pixel e alle caratteristiche del rendering originale.
+Correctly reproducing the DOS video mode might require attention to palettes, pixel aspect ratios and the characteristics of the original rendering.
 
-**Dimensione del lavoro**
+**Size of the effort**
 
-La ricostruzione completa potrebbe essere significativamente più impegnativa della realizzazione di una nuova applicazione scacchistica.
+The complete reconstruction might be significantly more demanding than building a new chess application.
 
-Per questo motivo ogni fase dovrà produrre risultati autonomamente verificabili.
+For this reason, each phase must produce independently verifiable results.
 
-### 16. Primo esperimento concreto
+### 16. First concrete experiment
 
-Prima di procedere alla ricostruzione completa, sarà realizzata una prova di fattibilità.
+Before proceeding with the complete reconstruction, a feasibility test will be carried out.
 
-Si partirà dalla distribuzione originale.
+It will start from the original distribution.
 
-Gli obiettivi saranno:
+The goals will be:
 
-1. Identificare il formato dell'eseguibile e il suo ambiente di esecuzione.
-2. Verificare l'avvio in DOSBox.
-3. Catturare la schermata principale.
-4. Identificare modalità video e risoluzione.
-5. Analizzare i file contenenti eventuali risorse grafiche.
-6. Riprodurre la schermata principale attraverso SDL3.
-7. Individuare nel binario almeno una funzione riconducibile al motore scacchistico.
-8. Ricostruire e verificare una prima funzione in C.
+1. Identify the executable format and its execution environment.
+2. Verify that it starts in DOSBox.
+3. Capture the main screen.
+4. Identify the video mode and resolution.
+5. Analyze the files that may contain graphics resources.
+6. Reproduce the main screen through SDL3.
+7. Locate in the binary at least one function attributable to the chess engine.
+8. Reconstruct and verify a first function in C.
 
-Questa prova dovrà dimostrare la fattibilità sia della replica grafica sia del recupero algoritmico.
+This test must demonstrate the feasibility of both the graphical replica and the algorithmic recovery.
 
-### 17. Definizione del risultato finale
+### 17. Definition of the final result
 
-Il progetto si potrà considerare riuscito quando sarà possibile:
+The project can be considered successful when it is possible to:
 
-- Avviare Fritz nativamente su un sistema operativo moderno.
-- Visualizzare un'interfaccia sostanzialmente fedele all'originale.
-- Navigare i menu e utilizzare i controlli.
-- Giocare una partita completa.
-- Far eseguire al computer mosse attraverso il motore ricostruito.
-- Ottenere un comportamento scacchistico coerente con la versione DOS, nei limiti documentati.
-- Utilizzare le principali funzionalità originali.
-- Compilare il progetto con una toolchain C moderna.
-- Eseguire il programma senza emulatori DOS.
+- Launch Fritz natively on a modern operating system.
+- Display an interface substantially faithful to the original.
+- Navigate the menus and use the controls.
+- Play a complete game.
+- Have the computer make moves through the reconstructed engine.
+- Obtain chess behavior consistent with the DOS version, within documented limits.
+- Use the main original features.
+- Build the project with a modern C toolchain.
+- Run the program without DOS emulators.
 
-### 18. Principio conclusivo
+### 18. Closing principle
 
-**Fritz 2.5 Reborn non deve essere un clone esteticamente somigliante a Fritz. Deve essere un tentativo documentato di ricostruzione del programma originale.**
+**Fritz 2.5 Reborn must not be a clone that merely looks like Fritz. It must be a documented attempt to reconstruct the original program.**
 
-Il valore del progetto è duplice.
+The value of the project is twofold.
 
-Da una parte, preservare un'esperienza software storica, rendendola nuovamente accessibile sui sistemi moderni.
+On the one hand, preserving a historical software experience, making it accessible again on modern systems.
 
-Dall'altra, studiare e recuperare le tecniche di programmazione e di intelligenza artificiale scacchistica utilizzate negli anni Novanta.
+On the other, studying and recovering the programming and chess artificial intelligence techniques used in the nineties.
 
-L'ambizione è recuperare il più possibile del comportamento originale e restituirlo in una codebase C piccola, comprensibile, verificabile e portabile.
+The ambition is to recover as much of the original behavior as possible and deliver it in a small, understandable, verifiable and portable C codebase.
 
-La prima attività operativa consiste nell'acquisire i file originali di Fritz 2.5 / 2.51 e analizzarne la struttura, senza assumere preventivamente nulla sulla loro organizzazione interna.
+The first operational activity consists of acquiring the original Fritz 2.5 / 2.51 files and analyzing their structure, without assuming anything in advance about their internal organization.

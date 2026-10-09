@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
-"""Applica patch byte a FRITZ2.UNP.EXE per verificare ipotesi in DOSBox.
+"""Patches bytes in FRITZ2.UNP.EXE to test hypotheses in DOSBox.
 
-Uso: patch.py IN.EXE OUT.EXE INDIRIZZO=HEX [INDIRIZZO=HEX ...]
-  INDIRIZZO: SEG:OFF (segmento relativo all'immagine, come nel disassemblato)
-             oppure DS:OFF (DGROUP = 3464).
-  HEX:       byte da scrivere, es. ffffffffffffffff
-Ogni patch stampa i byte originali, così resta traccia nel log dell'esperimento.
+Usage: patch.py IN.EXE OUT.EXE ADDRESS=HEX [ADDRESS=HEX ...]
+  ADDRESS: SEG:OFF (image-relative segment, as in the disassembly)
+           or DS:OFF (DGROUP = 3464).
+  HEX:     bytes to write, e.g. ffffffffffffffff
+Each patch prints the original bytes, so the experiment log keeps a record.
 """
 import struct
 import sys

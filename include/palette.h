@@ -7,7 +7,7 @@ typedef struct Rgb {
     uint8_t r, g, b;
 } Rgb;
 
-/* Palette a 16 colori come appare negli screenshot nativi di DOSBox. */
+/* 16-colour palette as it appears in native DOSBox screenshots. */
 extern const Rgb palette_vga16[16];
 
 #endif

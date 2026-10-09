@@ -1,7 +1,7 @@
-# Distribuzione originale DOS: non va pubblicata (vedi IDEA.md §14)
+# Original DOS distribution: must not be published (see IDEA.md §14)
 /dos/
 
-# Build e dipendenze locali (SDL3, file decompressi, catture)
+# Builds and local dependencies (SDL3, Ghidra, JDK, unpacked files, captures)
 /build/
 
 # IDE

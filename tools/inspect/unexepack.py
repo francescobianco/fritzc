@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
-"""Decompressore per eseguibili DOS compressi con Microsoft EXEPACK.
+"""Unpacker for DOS executables compressed with Microsoft EXEPACK.
 
-Uso: unexepack.py INPUT.EXE OUTPUT.EXE
+Usage: unexepack.py INPUT.EXE OUTPUT.EXE
 
-Ricostruisce un eseguibile MZ standard con la tabella di rilocazione
-originale, così da poterlo caricare in Ghidra o disassemblare.
+Rebuilds a standard MZ executable with the original relocation table,
+so it can be loaded into Ghidra or disassembled.
 """
 import struct
 import sys
@@ -14,11 +14,11 @@ def unpack(data: bytes) -> bytes:
     (magic, last, pages, nrel, hdrpar, minalloc, maxalloc, ss, sp, csum,
      ip, cs, lfarlc, ovl) = struct.unpack_from('<14H', data, 0)
     if magic != 0x5A4D:
-        raise ValueError('non è un file MZ')
+        raise ValueError('not an MZ file')
     size = pages * 512 - ((512 - last) if last else 0)
     image = data[hdrpar * 16:size]
 
-    # Header EXEPACK all'inizio del segmento CS (variante a 16 o 18 byte).
+    # EXEPACK header at the start of the CS segment (16- or 18-byte variant).
     hdr_off = cs * 16
     real_ip, real_cs, _mem, exepack_size, real_sp, real_ss, dest_len = \
         struct.unpack_from('<7H', image, hdr_off)
@@ -26,13 +26,13 @@ def unpack(data: bytes) -> bytes:
     if struct.unpack_from('<H', image, hdr_off + 14)[0] != 0x4252:  # "RB"
         skip_len = struct.unpack_from('<H', image, hdr_off + 14)[0]
         if struct.unpack_from('<H', image, hdr_off + 16)[0] != 0x4252:
-            raise ValueError('firma EXEPACK "RB" non trovata')
+            raise ValueError('EXEPACK "RB" signature not found')
     hdr_len = 16 if skip_len == 1 else 18
 
     compressed = bytearray(image[:hdr_off - (skip_len - 1) * 16])
     out = bytearray(dest_len * 16)
 
-    # Decompressione all'indietro.
+    # Decompress backwards.
     src = len(compressed) - 1
     while src >= 0 and compressed[src] == 0xFF:
         src -= 1
@@ -54,17 +54,17 @@ def unpack(data: bytes) -> bytes:
                 dst -= 1
                 src -= 1
         else:
-            raise ValueError(f'comando EXEPACK sconosciuto {cmd:#x}')
+            raise ValueError(f'unknown EXEPACK command {cmd:#x}')
         if cmd & 1:
             break
-    # I byte che precedono il primo blocco compresso restano invariati.
+    # Bytes before the first compressed block are left as they are.
     out[:src + 1] = compressed[:src + 1]
 
-    # Tabella di rilocazione compressa: 16 gruppi (uno per 0x1000 paragrafi).
+    # Packed relocation table: 16 groups (one per 0x1000 paragraphs).
     stub = hdr_off + hdr_len
     msg = image.find(b'Packed file is corrupt', stub)
     if msg < 0:
-        raise ValueError('stub EXEPACK non riconosciuto')
+        raise ValueError('EXEPACK stub not recognised')
     p = msg + len(b'Packed file is corrupt')
     relocs = []
     for seg in range(16):
@@ -94,7 +94,7 @@ def main() -> None:
     data = open(sys.argv[1], 'rb').read()
     out = unpack(data)
     open(sys.argv[2], 'wb').write(out)
-    print(f'{sys.argv[1]}: {len(data)} -> {len(out)} byte')
+    print(f'{sys.argv[1]}: {len(data)} -> {len(out)} bytes')
 
 
 if __name__ == '__main__':

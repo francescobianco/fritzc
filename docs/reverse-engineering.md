@@ -1,183 +1,187 @@
-# Reverse engineering — Fase 0: acquisizione e identificazione
+# Reverse engineering notes
 
-Stato dell'analisi della distribuzione presente in `dos/fritz251/`
-(non inclusa nel repository, vedi `.gitignore` e IDEA.md §14).
-Gli hash SHA-256 di tutti i file sono in `reference/fritz251.sha256`.
+Analysis of the distribution in `dos/fritz251/` (not part of the repository,
+see `.gitignore` and IDEA.md §14). SHA-256 hashes of every file are in
+`reference/fritz251.sha256`.
 
-Legenda: **[verificato]** = confermato da prove dirette;
-**[ipotesi]** = da confermare con analisi successive.
+Legend: **[verified]** = confirmed by direct evidence;
+**[hypothesis]** = still to be confirmed.
 
-## 1. Identificazione della versione
+Addresses are `SEG:OFF` in the unpacked image `build/re/FRITZ2.UNP.EXE`
+(segments relative to the load address; DGROUP = `3464`). Ghidra loads the
+image at segment `1000`, so `293b:9e44` appears there as `393b:9e44`.
 
-La distribuzione è **ChessBase Fritz 2.51** per MS-DOS. **[verificato]**
+## 1. Version identification
 
-Prove:
+The distribution is **ChessBase Fritz 2.51** for MS-DOS. **[verified]**
 
-1. **Finestra "About Fritz" a runtime.** Avviando `FRITZ2.EXE` in DOSBox,
-   il menu `Fritz=F1 → About Fritz` mostra `ChessBase Fritz 2.51` e i crediti
+Evidence:
+
+1. **"About Fritz" box at runtime.** Running `FRITZ2.EXE` in DOSBox,
+   `Fritz=F1 → About Fritz` shows `ChessBase Fritz 2.51` and the credits
    *Mathias Feist, Frans Morsch and Matthias Wüllenweber*.
-2. **Stringa nel binario.** Nell'eseguibile decompresso, all'offset immagine
-   `0x3e0e9`, c'è la stringa con prefisso di lunghezza (formato Pascal, `0x14`
-   = 20 byte) `ChessBase Fritz 2.51`, seguita dai nomi degli autori. È la
-   stringa letta dalla finestra About, non un'etichetta aggiunta in seguito.
-3. **Coerenza della distribuzione.** Tutti i file del programma hanno lo stesso
-   timestamp `1993-08-01 05:34:56`, tipico di una distribuzione masterizzata
-   in un'unica volta. Fa eccezione `FRITZ2.DAT` (`1993-08-01 11:45:06`, stesso
-   giorno). I libri in `BOOKS/` sono del 23-25/11/1992, quindi precedenti e
-   probabilmente condivisi con versioni o prodotti ChessBase anteriori.
-4. **Nome dei file.** Il prefisso `FRITZ2.*` indica il prodotto "Fritz 2";
-   2.51 è il livello di revisione. Il nome della cartella `fritz251` è quindi
-   coerente con il contenuto. Il programma non dipende dal nome della
-   directory: legge i file dalla directory corrente.
+2. **String in the binary.** In the unpacked executable, at image offset
+   `0x3e0e9`, there is the length-prefixed string (Pascal style, `0x14` =
+   20 bytes) `ChessBase Fritz 2.51`, followed by the authors' names. It is
+   the string read by the About box, not a label added afterwards.
+3. **Consistent distribution.** All program files share the timestamp
+   `1993-08-01 05:34:56`, typical of a release mastered in one go.
+   `FRITZ2.DAT` is the exception (`1993-08-01 11:45:06`, same day). The books
+   in `BOOKS/` date from 23–25 Nov 1992, so they predate the program and were
+   probably shared with earlier ChessBase products.
+4. **File names.** The `FRITZ2.*` prefix stands for the product "Fritz 2";
+   2.51 is the revision. The directory name `fritz251` is therefore
+   consistent. The program does not depend on the directory name: it reads
+   its files from the current directory.
 
-Unico file modificato dopo la distribuzione: **`FRITZ2.PAR`**
-(timestamp `2001-02-17`). È il file delle impostazioni utente, che Fritz
-riscrive. Contiene percorsi come `C:\TEMP` e `C:FRITZ2.CBF`, quindi la copia
-proviene da un'installazione usata, non dai dischetti originali. Con questo
-file presente, il programma salta la scelta della lingua e della scheda
-grafica. Per riprodurre il primo avvio "pulito" bisognerà rimuoverlo
-(nella copia di lavoro, mai nell'originale).
+The only file modified after release is **`FRITZ2.PAR`** (timestamp
+`2001-02-17`). It holds the user settings, which Fritz rewrites. It contains
+paths such as `C:\TEMP` and `C:FRITZ2.CBF`, so this copy comes from a used
+installation, not from the original floppies. With this file present the
+program skips the language and graphics card prompts. To reproduce a clean
+first start, remove it (from the working copy, never from the original).
 
-Non è stato trovato un elenco pubblico di hash di riferimento per confrontare
-la distribuzione con una copia nota. Gli hash locali sono comunque registrati.
+No public list of reference hashes was found to compare against a known
+copy. The local hashes are recorded anyway.
 
-## 2. Inventario dei file
+## 2. File inventory
 
-| File | Dimensione | Funzione |
+| File | Size | Purpose |
 |---|---:|---|
-| `FRITZ2.EXE` | 244 858 | Eseguibile principale (MZ, compresso con EXEPACK) **[verificato]** |
-| `FRITZ2.BIN` | 35 877 | Modulo binario caricato a runtime. Inizia con `JMP` e ha uno stack proprio. Potrebbe essere il motore scacchistico separato dall'interfaccia **[ipotesi]** |
-| `FRITZ2.DAT` | 888 406 | Campioni audio a 8 bit non segnati (intorno a `0x80`), blocchi con firma `SOL` **[ipotesi: suoni/voce]** |
-| `FRITZ2.IMG` | 1 512 | Bitmap compressa, probabilmente il logo "fritz 2" **[ipotesi]** |
-| `FRITZ2.PAR` | 759 | Impostazioni utente (lingua, percorsi, database) **[verificato]** |
-| `FENGLISH.LAN`, `FDEUTSCH.LAN` | 10 445 / 11 334 | Testi dell'interfaccia (menu, messaggi) in inglese e tedesco **[verificato]** |
-| `FENGLISH.HLP`, `FDEUTSCH.HLP` | 8 871 / 9 006 | Testi dell'aiuto in linea **[verificato]** |
-| `*.CBF`, `*.CBI`, `*.CKO`, `*.CPO`, `*.CPA` | — | Database in formato ChessBase (partite, indice, chiavi, posizioni). Set: `FRITZ2`, `C45_C47`, `TAKTIK` **[ipotesi sul ruolo di ciascuna estensione]** |
-| `FRITZ2.FBK`, `BOOKS/*.FBK` | — | Libri di apertura Fritz. `FRITZ2.FBK` è identico a `BOOKS/A00-E99.FBK` **[verificato: stesso hash]** |
-| `BOOKS/A00-E99.CKB`, `.CPB` | — | Libro di apertura in formato ChessBase **[ipotesi]** |
+| `FRITZ2.EXE` | 244 858 | Main executable (MZ, EXEPACK-compressed) **[verified]** |
+| `FRITZ2.BIN` | 35 877 | Binary module loaded at runtime. Starts with `JMP` and sets up its own stack. Possibly the chess engine, separate from the UI **[hypothesis]** |
+| `FRITZ2.DAT` | 888 406 | Unsigned 8-bit audio samples (around `0x80`), blocks tagged `SOL` **[hypothesis: sounds/speech]** |
+| `FRITZ2.IMG` | 1 512 | Compressed bitmap, probably the "fritz 2" logo **[hypothesis]** |
+| `FRITZ2.PAR` | 759 | User settings (language, paths, database) **[verified]** |
+| `FENGLISH.LAN`, `FDEUTSCH.LAN` | 10 445 / 11 334 | UI strings (menus, messages), English and German **[verified]** |
+| `FENGLISH.HLP`, `FDEUTSCH.HLP` | 8 871 / 9 006 | Online help texts **[verified]** |
+| `*.CBF`, `*.CBI`, `*.CKO`, `*.CPO`, `*.CPA` | — | ChessBase-format databases (games, index, keys, positions). Sets: `FRITZ2`, `C45_C47`, `TAKTIK` **[hypothesis on each extension's role]** |
+| `FRITZ2.FBK`, `BOOKS/*.FBK` | — | Fritz opening books. `FRITZ2.FBK` is identical to `BOOKS/A00-E99.FBK` **[verified: same hash]** |
+| `BOOKS/A00-E99.CKB`, `.CPB` | — | Opening book in ChessBase format **[hypothesis]** |
 
-Altri nomi di file citati nell'eseguibile: `MAINBASE.CBF`, `EXPORT.CBF`,
-`EXPORT.DOC`, `IMPORT.CKO`, `DIAGRAMM.DOC`. Ci sono anche i pattern
-`*.CFG`, `*.VFG`, `*.EFG`, `*.HFG`, probabilmente configurazioni colori per
-VGA, EGA ed Hercules.
+Other file names referenced by the executable: `MAINBASE.CBF`, `EXPORT.CBF`,
+`EXPORT.DOC`, `IMPORT.CKO`, `DIAGRAMM.DOC`, plus the patterns `*.CFG`,
+`*.VFG`, `*.EFG`, `*.HFG` (probably colour settings for VGA, EGA and
+Hercules).
 
-## 3. Formato dell'eseguibile
+## 3. Executable format
 
-- **Formato:** MZ (DOS real mode, 16 bit), compresso con **Microsoft EXEPACK**.
-  Il file ha zero rilocazioni nell'header e lo stub di decompressione è in
-  fondo, con il messaggio `Packed file is corrupt`. **[verificato]**
-- **Decompressione:** `tools/inspect/unexepack.py`. Produce un MZ standard di
-  254 880 byte con 2 468 rilocazioni, tutte con destinazione valida.
-  Entry point originale `0000:8C0C`, stack `3F7D:4000`. **[verificato]**
-- **Compilatore:** Microsoft C (`MS Run-Time Library - Copyright (c) 1988,
-  Microsoft Corp`, messaggi `R6xxx` del runtime MSC). Nessun DOS extender.
-  **[verificato]**
-- **Segmenti referenziati dalle rilocazioni:** `0000`, `0A1F`, `19E7`, `293B`,
-  `344D`, `3464`. Modello di memoria con più segmenti di codice (medium o
-  large). **[verificato per i segmenti; modello da confermare]**
-- **Grafica:** usa la libreria grafica di Microsoft C (`_setvideomode`, con
-  supporto Hercules a basso livello sulle porte `3B4h/3B8h/3BFh`). Lo
-  switch da riga di comando include `/X`, `/EMS`, `/VGA`, … **[verificato]**
+- **Format:** MZ (DOS real mode, 16-bit), compressed with **Microsoft
+  EXEPACK**. The header has zero relocations and the unpacking stub sits at
+  the end, with the message `Packed file is corrupt`. **[verified]**
+- **Unpacking:** `tools/inspect/unexepack.py` produces a standard 254 880-byte
+  MZ with 2 468 relocations, all pointing to valid targets. Original entry
+  point `0000:8C0C`, stack `3F7D:4000`. **[verified]**
+- **Compiler:** Microsoft C (`MS Run-Time Library - Copyright (c) 1988,
+  Microsoft Corp`, MSC runtime `R6xxx` messages). No DOS extender.
+  **[verified]**
+- **Segments referenced by relocations:** `0000`, `0A1F`, `19E7`, `293B`,
+  `344D`, `3464`. Multiple code segments (medium or large model).
+  **[verified for the segments; model to be confirmed]**
+- **Graphics:** the program's own library in segment `293b` (see §6), with
+  drivers for VGA, EGA, CGA and Hercules (direct CRTC programming on ports
+  `3B4h/3B8h/3BFh`). Command-line switches include `/X`, `/EMS`, `/VGA`, …
+  **[verified]**
 
-## 4. Ambiente di esecuzione e modalità video
+## 4. Runtime environment and video mode
 
-- Funziona in DOSBox 0.74-3 (`machine=svga_s3`, `cycles=20000`).
-  Configurazione: `reference/dosbox.conf`. **[verificato]**
-- Scelta della scheda grafica supportata: VGA, EGA, Hercules, CGA.
-- Con la scheda VGA la modalità è **640×480, 16 colori** (palette EGA/VGA
-  standard, VGA mode 12h). La schermata principale usa solo 4 colori:
-  nero, bianco, blu scuro e azzurro. I pixel sono quadrati, quindi non serve
-  correggere il rapporto d'aspetto. **[verificato con screenshot nativo DOSBox]**
+- Runs in DOSBox 0.74-3 (`machine=svga_s3`, `cycles=20000`).
+  Configuration: `reference/dosbox.conf`. **[verified]**
+- Supported graphics cards: VGA, EGA, Hercules, CGA.
+- With VGA the mode is **640×480, 16 colours** (standard EGA/VGA palette,
+  VGA mode 12h). The main screen uses only 4 colours: black, white, dark blue
+  and light grey. Pixels are square, so no aspect correction is needed.
+  **[verified with native DOSBox screenshots]**
 
-## 5. Metodo
+## 5. Method
 
-Il porting si ottiene **traducendo in C il codice e i dati del binario**,
-non imitando gli screenshot. Ogni funzione C cita l'indirizzo `SEG:OFF`
-della routine originale (segmenti dell'immagine decompressa; DGROUP = `3464`).
+The port is built by **translating the binary's code and data into C**,
+not by imitating screenshots. Every C function cites the `SEG:OFF` address
+of the original routine.
 
-DOSBox serve a due scopi:
+DOSBox has two roles:
 
-1. **Esperimenti con patch.** Si modifica `FRITZ2.UNP.EXE` con
-   `tools/compare/patch.py`, lo si esegue con `FRITZ_EXE=… dosbox-run.sh`
-   e si verifica se l'effetto osservato conferma l'ipotesi. Ogni
-   esperimento va annotato nel registro (§7).
-2. **Riferimento per i test.** Gli screenshot nativi si confrontano con il
-   frame prodotto dal porting (`fritz --dump`).
+1. **Patch experiments.** Modify `FRITZ2.UNP.EXE` with
+   `tools/compare/patch.py`, run it with `FRITZ_EXE=… dosbox-run.sh`, and
+   check whether the observed effect confirms the hypothesis. Every
+   experiment is recorded in the log (§7).
+2. **Test reference.** Native screenshots are compared with the frame
+   produced by the port (`fritz --dump`).
 
-L'EXE decompresso è equivalente all'originale: la schermata iniziale
-coincide, salvo l'indicatore di memoria libera ("105 kB" contro "101 kB"),
-che dipende dalla dimensione del file.
+The unpacked EXE behaves like the original: the start screen is identical
+except for the free-memory indicator ("105 kB" vs "101 kB"), which depends
+on the file size.
 
-## 6. Libreria grafica (segmento `293b`)
+## 6. Graphics library (segment `293b`)
 
-Libreria propria, non quella di Microsoft C. Ha funzioni far in convenzione
-Pascal (`retf N`) e driver per scheda selezionati tramite le tabelle
-`DS:6FA1…6FDD`, indicizzate da `[DS:6F58]`. **[verificato]**
+The program's own library, not Microsoft C's. Far functions with Pascal
+calling convention (`retf N`); per-card drivers dispatched through the tables
+at `DS:6FA1…6FDD`, indexed by `[DS:6F58]`. **[verified]**
 
-- **Coordinate logiche 720×348.** L'interfaccia ragiona nella geometria
-  Hercules e converte con `293b:aa5f` (x) e `293b:aa75` (y):
-  `x' = (x·[6F48] + [6F4C]) / [6F4A]` e `y' = (y·[6F50] + [6F54]) / [6F52]`.
-  La somma avviene senza propagare il riporto. I parametri sono impostati
-  da `293b:aa8b`, chiamata da `0000:814b`. **[verificato]**
-- **Parametri per scheda.** `0000:7eaf` copia i dati da `DS:7478`.
-  Per VGA (`DS:7478`) sono `16/18 +9` e `48/35 +17`, quindi
-  720×348 → 640×477: le righe 477–479 dello schermo restano nere. Per
-  EGA (`DS:74AE`) la scala è `16/18 +9` e `1/1`, quindi 640×348. **[verificato]**
-- **`293b:9e44` FillPattern(x, y, w, h, colore, retino, rop).** Coordinate
-  dispositivo. La maschera di riga è `retino[y & 7]` e il bit 7 è il pixel
-  con `x & 7 == 0`. I bit a 0 lasciano il pixel invariato. `rop` è il
-  valore del registro VGA Function Select (`0` copia, `08h` AND, `10h` OR,
-  `18h` XOR). Il driver VGA è `293b:9ec4` → `293b:9b2c` (write mode 0 con
-  set/reset). Tradotta in `src/gui/gfx.c`. **[verificato]**
-- **Retini** `DS:7023` → 8 maschere 8×8 a `DS:7033…706A`; il n. 1
-  (`88 22…`) è lo sfondo del desktop. **[verificato con patch]**
+- **720×348 logical coordinates.** The UI works in Hercules geometry and
+  converts with `293b:aa5f` (x) and `293b:aa75` (y):
+  `x' = (x·[6F48] + [6F4C]) / [6F4A]` and `y' = (y·[6F50] + [6F54]) / [6F52]`.
+  The addition does not propagate the carry into the high word. The
+  parameters are set by `293b:aa8b`, called from `0000:814b`. **[verified]**
+- **Per-card parameters.** `0000:7eaf` copies them from `DS:7478`.
+  For VGA (`DS:7478`) they are `16/18 +9` and `48/35 +17`, so
+  720×348 → 640×477: screen rows 477–479 stay black. For EGA (`DS:74AE`)
+  the scale is `16/18 +9` and `1/1`, i.e. 640×348. **[verified]**
+- **`293b:9e44` FillPattern(x, y, w, h, colour, pattern, rop).** Device
+  coordinates. The row mask is `pattern[y & 7]` and bit 7 is the pixel with
+  `x & 7 == 0`. Zero bits leave the pixel unchanged. `rop` is the VGA
+  Function Select value (`0` copy, `08h` AND, `10h` OR, `18h` XOR). The VGA
+  driver is `293b:9ec4` → `293b:9b2c` (write mode 0 with set/reset).
+  Translated in `src/gui/gfx.c`. **[verified]**
+- **Patterns** `DS:7023` → eight 8×8 masks at `DS:7033…706A`; number 1
+  (`88 22…`) is the desktop background. **[verified by patch]**
 
-## 7. Registro degli esperimenti
+## 7. Experiment log
 
-| # | Ipotesi | Patch | Risultato |
+| # | Hypothesis | Patch | Result |
 |---|---|---|---|
-| 1 | L'EXE decompresso è equivalente all'originale | nessuna (`FRITZ_EXE=FRITZ2.UNP.EXE`) | Confermata: schermata identica salvo l'indicatore di memoria |
-| 2 | `DS:703B` è il retino del desktop | `DS:703b=ff00ff00ff00ff00` | Confermata: lo sfondo diventa a righe orizzontali blu e bianche |
+| 1 | The unpacked EXE is equivalent to the original | none (`FRITZ_EXE=FRITZ2.UNP.EXE`) | Confirmed: identical screen except the memory indicator |
+| 2 | `DS:703B` is the desktop pattern | `DS:703b=ff00ff00ff00ff00` | Confirmed: the background turns into horizontal blue and white stripes |
 
-## 8. Funzioni ricostruite
+## 8. Reconstructed functions
 
-| Originale | C | Stato |
+| Original | C | Status |
 |---|---|---|
-| `293b:aa5f`, `293b:aa75`, `293b:aa8b` | `gfx_scale_x/y`, `gfx_set_scale` | completo |
-| `293b:9e44` (solo driver VGA) | `gfx_fill_pattern` | completo per VGA |
-| `0000:2512` fino a `0000:259d` | `desktop_draw` | parziale: colori `[AD6E]`, `[0F4E]`, `[B0C6]` presi dall'osservazione, origine da ricostruire |
+| `293b:aa5f`, `293b:aa75`, `293b:aa8b` | `gfx_scale_x/y`, `gfx_set_scale` | complete |
+| `293b:9e44` (VGA driver only) | `gfx_fill_pattern` | complete for VGA |
+| `0000:2512` up to `0000:259d` | `desktop_draw` | partial: colours `[AD6E]`, `[0F4E]`, `[B0C6]` taken from observation, origin to be reconstructed |
 
-Verifica: `fritz --dump` coincide pixel per pixel con lo screenshot DOSBox
-in tutte le zone dove il desktop è visibile.
+Check: `fritz --dump` matches the DOSBox screenshot pixel for pixel
+wherever the desktop is visible.
 
-## 9. Strumenti
+## 9. Tools
 
-| Strumento | Uso |
+| Tool | Use |
 |---|---|
-| `tools/inspect/unexepack.py IN OUT` | Decomprime un EXE EXEPACK |
-| `tools/inspect/xkeys.py TASTI…` | Invia tasti via XTest alla finestra attiva (DOSBox) |
-| `tools/inspect/dis.py EXE SEG:OFF [N]` | Disassembla N istruzioni a un indirizzo |
-| `tools/compare/patch.py IN OUT SEG:OFF=HEX…` | Applica patch all'EXE decompresso (per esperimenti) |
-| `tools/compare/dosbox-run.sh OUTDIR SEC TASTI…` | Avvia Fritz su una copia temporanea e raccoglie gli screenshot (`ctrl+F5`); `FRITZ_EXE` sostituisce l'eseguibile |
+| `tools/inspect/unexepack.py IN OUT` | Unpacks an EXEPACK executable |
+| `tools/inspect/xkeys.py KEYS…` | Sends keys via XTest to the focused window (DOSBox) |
+| `tools/inspect/dis.py EXE SEG:OFF [N]` | Disassembles N instructions at an address |
+| `tools/compare/patch.py IN OUT SEG:OFF=HEX…` | Patches the unpacked EXE (for experiments) |
+| `tools/compare/dosbox-run.sh OUTDIR SECS KEYS…` | Runs Fritz on a temporary copy and collects screenshots (`ctrl+F5`); `FRITZ_EXE` replaces the executable |
+| `tools/ghidra/decompile.sh SEG:OFF…` | Imports the unpacked EXE into Ghidra (headless) and prints decompiled functions |
 
-Esempio, cattura della finestra About:
+Example, capturing the About box:
 
 ```sh
 tools/compare/dosbox-run.sh build/captures 15 F1 Up Return sleep:1.5 ctrl+F5
 ```
 
-Nota: sotto Wayland DOSBox gira tramite XWayland. XTest funziona finché
-la finestra di DOSBox ha il focus.
+Note: under Wayland DOSBox runs through XWayland. XTest works as long as
+the DOSBox window has focus.
 
-## 10. Prossimi passi
+## 10. Next steps
 
-1. Continuare `0000:2512` da `call 0000:05f3`: cornici, pannelli, barra dei menu.
-2. Trovare l'origine dei colori `[AD6E]`, `[0F4E]`, `[B0C6]`
-   (probabilmente da `FRITZ2.PAR` o da una tabella di default).
-3. Importare `build/re/FRITZ2.UNP.EXE` in Ghidra (scaricato in
-   `build/deps/`), con nomi e commenti delle funzioni già identificate.
-4. Verificare se `FRITZ2.BIN` è il motore: tracciarne il caricamento da
-   `FRITZ2.EXE` e il punto d'ingresso (`JMP 0x2604`).
-5. Decodificare `FRITZ2.IMG` (logo) e localizzare nell'EXE le bitmap dei pezzi
-   e i font 8×14 (sono visibili nei dati non compressi).
-6. Catalogare tutti i menu (F1–F6) con `dosbox-run.sh` (IDEA.md §6.1).
+1. Continue `0000:2512` from `call 0000:05f3`: frames, panels, menu bar.
+2. Find where the colours `[AD6E]`, `[0F4E]`, `[B0C6]` come from
+   (probably `FRITZ2.PAR` or a default table).
+3. Annotate the Ghidra project with the names of the functions identified so far.
+4. Check whether `FRITZ2.BIN` is the engine: trace how `FRITZ2.EXE` loads it
+   and its entry point (`JMP 0x2604`).
+5. Decode `FRITZ2.IMG` (logo) and locate the piece bitmaps and the 8×14
+   fonts in the EXE (they are visible in the uncompressed data).
+6. Catalogue all menus (F1–F6) with `dosbox-run.sh` (IDEA.md §6.1).

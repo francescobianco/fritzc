@@ -5,8 +5,8 @@ set(CMAKE_C_STANDARD 11)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 set(CMAKE_C_EXTENSIONS OFF)
 
-# SDL3: usa un'installazione esistente (es. -DCMAKE_PREFIX_PATH=build/deps/prefix),
-# altrimenti la scarica e la compila.
+# SDL3: use an existing installation (e.g. -DCMAKE_PREFIX_PATH=build/deps/prefix),
+# otherwise download and build it.
 find_package(SDL3 CONFIG QUIET)
 if(NOT SDL3_FOUND)
     include(FetchContent)

@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
-"""Invia sequenze di tasti alla finestra X11 attiva tramite XTest.
+"""Sends key sequences to the focused X11 window through XTest.
 
-Uso: xkeys.py "ctrl+F5" "F1" "Down" "Return" ...
-Ogni argomento è una combinazione di keysym X11 separati da '+'.
-Un argomento "sleep:N" attende N secondi.
-Serve ad automatizzare DOSBox durante l'analisi (catture, menu).
+Usage: xkeys.py "ctrl+F5" "F1" "Down" "Return" ...
+Each argument is a combination of X11 keysyms joined by '+'.
+An argument "sleep:N" waits N seconds.
+Used to drive DOSBox during the analysis (captures, menus).
 """
 import ctypes
 import sys
@@ -27,14 +27,14 @@ def keycode(dpy, name: str) -> int:
     sym = x11.XStringToKeysym(ALIASES.get(name.lower(), name).encode())
     code = x11.XKeysymToKeycode(dpy, sym)
     if not code:
-        raise SystemExit(f'tasto sconosciuto: {name}')
+        raise SystemExit(f'unknown key: {name}')
     return code
 
 
 def main() -> None:
     dpy = x11.XOpenDisplay(None)
     if not dpy:
-        raise SystemExit('impossibile aprire il display X')
+        raise SystemExit('cannot open the X display')
     for arg in sys.argv[1:]:
         if arg.startswith('sleep:'):
             time.sleep(float(arg[6:]))

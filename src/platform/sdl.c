@@ -20,7 +20,7 @@ bool platform_init(const char *title, int scale)
         SDL_Log("SDL_CreateWindowAndRenderer: %s", SDL_GetError());
         return false;
     }
-    /* Scala intera e nearest-neighbor: i pixel originali restano quadrati e netti. */
+    /* Integer scaling with nearest neighbour keeps the original pixels square and sharp. */
     SDL_SetRenderLogicalPresentation(renderer, SCREEN_WIDTH, SCREEN_HEIGHT,
                                      SDL_LOGICAL_PRESENTATION_INTEGER_SCALE);
     texture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_XRGB8888,
@@ -115,7 +115,7 @@ bool platform_load_reference(const char *path, Screen *out)
                        SCREEN_WIDTH);
         ok = true;
     } else {
-        SDL_Log("%s: serve un BMP indicizzato 8 bit 640x480", path);
+        SDL_Log("%s: an 8-bit indexed 640x480 BMP is required", path);
     }
     SDL_DestroySurface(bmp);
     return ok;

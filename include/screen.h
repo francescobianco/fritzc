@@ -3,14 +3,14 @@
 
 #include <stdint.h>
 
-/* Superficie virtuale con la geometria della modalità VGA usata da Fritz 2.51
-   (640x480, 16 colori, pixel quadrati). Ogni pixel è un indice di palette. */
+/* Virtual surface with the geometry of the VGA mode used by Fritz 2.51
+   (640x480, 16 colours, square pixels). Each pixel is a palette index. */
 enum {
     SCREEN_WIDTH = 640,
     SCREEN_HEIGHT = 480
 };
 
-/* Indici della palette EGA/VGA standard. */
+/* Standard EGA/VGA palette indices. */
 enum {
     COLOR_BLACK = 0,
     COLOR_BLUE = 1,

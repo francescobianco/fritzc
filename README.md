@@ -1,40 +1,49 @@
 # Fritz 2.5 Reborn
 
-Porting nativo in C11 + SDL3 di ChessBase Fritz 2.51 per MS-DOS, ottenuto con
-il reverse engineering del programma originale. Visione e piano: [IDEA.md](IDEA.md).
-Stato dell'analisi: [docs/reverse-engineering.md](docs/reverse-engineering.md).
+A native C11 + SDL3 port of ChessBase Fritz 2.51 for MS-DOS, rebuilt by
+reverse engineering the original program. Vision and plan: [IDEA.md](IDEA.md).
+Analysis status: [docs/reverse-engineering.md](docs/reverse-engineering.md).
 
-## Compilazione
+## Building
 
 ```sh
-cmake -S . -B build/cmake          # scarica e compila SDL3 se non è installata
+cmake -S . -B build/cmake          # downloads and builds SDL3 if not installed
 cmake --build build/cmake
-build/cmake/fritz [--scale N] [--reference cattura.bmp]
+build/cmake/fritz [--scale N] [--reference capture.bmp] [--dump out.bmp]
 ```
 
-Per usare una SDL3 già compilata: `-DCMAKE_PREFIX_PATH=/percorso/prefix`.
+To use an existing SDL3 build: `-DCMAKE_PREFIX_PATH=/path/to/prefix`.
 
-## Distribuzione originale
+## Original distribution
 
-I file originali vanno messi in `dos/fritz251/` (esclusa dal repository).
-Gli hash attesi sono in `reference/fritz251.sha256`:
+Put the original files in `dos/fritz251/` (excluded from the repository).
+The expected hashes are in `reference/fritz251.sha256`:
 
 ```sh
 (cd dos/fritz251 && sha256sum -c ../../reference/fritz251.sha256)
+python3 tools/inspect/unexepack.py dos/fritz251/FRITZ2.EXE build/re/FRITZ2.UNP.EXE
 ```
 
-## Confronto con l'originale
+## Comparing with the original
 
 ```sh
 tools/compare/dosbox-run.sh build/captures/main 10 ctrl+F5
 python3 -c "from PIL import Image; Image.open('build/captures/main/fritz2_000.png').save('build/captures/main/main.bmp')"
-build/cmake/fritz --reference build/captures/main/main.bmp   # Tab = originale, D = differenze
-build/cmake/fritz --dump build/native.bmp                     # frame nativo, senza finestra
+build/cmake/fritz --reference build/captures/main/main.bmp   # Tab = original, D = differences
+build/cmake/fritz --dump build/native.bmp                     # native frame, no window
 ```
 
-## Esperimenti con patch
+## Patch experiments
 
 ```sh
 python3 tools/compare/patch.py build/re/FRITZ2.UNP.EXE build/re/exp.exe DS:703b=ff00ff00ff00ff00
 FRITZ_EXE=build/re/exp.exe tools/compare/dosbox-run.sh build/captures/exp 10 ctrl+F5
 ```
+
+## Ghidra
+
+```sh
+tools/ghidra/decompile.sh 293b:9e44 0000:2512   # imports on first run
+```
+
+Ghidra and a JDK are expected in `build/deps/` (see the script header).
