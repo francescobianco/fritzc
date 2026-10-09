@@ -17,8 +17,10 @@ public class Decompile extends GhidraScript {
         DecompInterface decomp = new DecompInterface();
         decomp.openProgram(currentProgram);
         for (String arg : getScriptArgs()) {
-            String[] p = arg.split(":");
-            long seg = Long.parseLong(p[0], 16) + base;
+            // "@SEG:OFF" is an absolute Ghidra address (raw FRITZ2.BIN import).
+            boolean absolute = arg.startsWith("@");
+            String[] p = (absolute ? arg.substring(1) : arg).split(":");
+            long seg = Long.parseLong(p[0], 16) + (absolute ? 0 : base);
             long off = Long.parseLong(p[1], 16);
             Address addr = toAddr(String.format("%04x:%04x", seg, off));
             Function f = getFunctionContaining(addr);

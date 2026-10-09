@@ -19,6 +19,14 @@ if(NOT SDL3_FOUND)
     FetchContent_MakeAvailable(SDL3)
 endif()
 
+# Engine reconstruction, also built as a shared library for the
+# differential tests against the original module (tests/engine).
+set(ENGINE_SOURCES
+    src/engine/engine_memory.c
+    src/engine/attacks.c)
+add_library(fritzengine SHARED ${ENGINE_SOURCES})
+target_include_directories(fritzengine PRIVATE include)
+
 add_executable(fritz
     src/main.c
     src/gui/screen.c
@@ -32,16 +40,17 @@ add_executable(fritz
     src/gui/panels.c
     src/gui/mouse.c
     src/game/ui_state.c
-    src/engine/engine_memory.c
     src/game/game_board.c
     src/gui/ui_text.c
     src/game/language.c
     src/assets/exe.c
     src/game/settings.c
     src/gui/palette.c
-    src/platform/sdl.c)
+    src/platform/sdl.c
+    ${ENGINE_SOURCES})
 target_include_directories(fritz PRIVATE include)
 target_link_libraries(fritz PRIVATE SDL3::SDL3)
 if(CMAKE_C_COMPILER_ID MATCHES "GNU|Clang")
     target_compile_options(fritz PRIVATE -Wall -Wextra -Wpedantic)
+    target_compile_options(fritzengine PRIVATE -Wall -Wextra -Wpedantic)
 endif()

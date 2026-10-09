@@ -1,0 +1,15 @@
+# Known FRITZ2.BIN functions (same format as symbols.txt). The module is
+# imported raw at 1000:0100, so addresses are absolute: @1000:OFF with OFF
+# in the module's 0x100-based space.
+@1000:2704 engine_entry keep
+@1000:2b63 ui_square_to_engine keep
+@1000:72f2 generate_legal_moves keep
+@1000:3baf find_move keep
+@1000:3bf9 make_move keep
+@1000:31d5 search_root keep
+@1000:46b7 attacks_clear keep
+@1000:46f8 attacks_build keep
+@1000:81a3 in_check keep
+@1000:7326 legal_move_callback keep
+@1000:8692 make_move_internal keep
+@1000:719e unmake_move keep

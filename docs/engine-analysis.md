@@ -96,7 +96,52 @@ The module is not a child process: the EXE loads it into a memory block,
 calls it with a far call per command, and the module calls the EXE back
 during long searches so that the screen and the keyboard stay alive.
 
-## 6. Plan
+## 6. Internal representation
+
+All data lives in the module's own 64 KB segment (`DS = SS = CS`, stack
+below `0x2704`). **[verified]**
+
+- Board: 10×12 mailbox of **words** at `0x108`, a1 at `0x132`, ranks
+  `0x14` bytes apart, border `0xFFFE`. UI square `s` (0..63, rank-major)
+  maps to `0x132 + 2·(10·(s >> 3) + (s & 7))` (`0x2b63`); the table at
+  `0x5F58` maps back.
+- Piece codes (even): white pawn `0x10`, knight `0x12`, bishop `0x14`,
+  rook `0x16`/`0x18`, queen `0x1A`, king `0x1C`/`0x1E`; black = white
+  + `0x10`. The two rook and king codes share the same routines (probably
+  unmoved / moved, i.e. castling rights). **[codes verified; meaning of the
+  pairs is a hypothesis]**
+- Parallel per-square arrays at `+0x100` (piece index ×2), `+0x200` (white
+  attack words), `+0x300` (black attack words), `+0x400` (pawn pushes).
+- Attack tables: each piece owns a bit; `0x42F0` holds the word mask per
+  piece index. The per-piece routines (`0x45D4` table, `0x4380…0x45AA`)
+  XOR the mask along the piece's moves, so the same call adds or removes
+  it; sliders stop at the first non-empty square, included. `0x46b7`
+  clears the tables, `0x46f8` rebuilds them from the board. Kept up to date
+  incrementally during play: a rebuild from scratch gives the same bytes.
+  **[verified]**
+- `0x81a3`: in-check test, attack word of the other side on the king square
+  (`[0x600]`).
+- Legal move generation `0x72f2`: two pseudo-legal passes (`0x7408`,
+  `0x79c1`) written as coroutines; for each move `0x7326` makes it
+  (`0x8692`), rejects it if the own king is attacked, stores it in the lists
+  `0x2218` (from), `0x22B8` (to), `0x2358` (score), `0x23F8` (flags), count
+  ×2 in `[0x640]`, and unmakes it (`0x719e`).
+
+## 7. C reconstruction and differential tests
+
+`src/engine/` keeps the 64 KB segment as `Engine.mem` with the same offsets,
+so every C routine can be checked against the original on the same memory
+image: `tests/engine/diff.py` (`make engine-test`) collects states from a
+game played by the original engine in the harness, runs the routine in the
+emulator and in C (`libfritzengine.so` through ctypes) and requires the two
+64 KB images to be identical, apart from the stack area.
+
+| Original | C | Status |
+|---|---|---|
+| `0x46b7`, `0x46f8`, `0x4380…0x45AA` | `eng_attacks_clear`, `eng_attacks_build`, `eng_piece_attacks` | identical on 17 game states |
+| `0x29d8` hash sizing | `engine_hash_exponent` | translated (§4) |
+
+## 8. Plan
 
 1. Name each command from its callers in the EXE (new game, move, take back,
    search, level, hint, …) and from its handler.

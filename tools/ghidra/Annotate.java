@@ -29,9 +29,10 @@ public class Annotate extends GhidraScript {
             if (line.isEmpty() || line.startsWith("#"))
                 continue;
             String[] t = line.split("\\s+");
-            String[] p = t[0].split(":");
+            boolean absolute = t[0].startsWith("@");   // raw import address
+            String[] p = (absolute ? t[0].substring(1) : t[0]).split(":");
             Address addr = toAddr(String.format("%04x:%s",
-                    Long.parseLong(p[0], 16) + base, p[1]));
+                    Long.parseLong(p[0], 16) + (absolute ? 0 : base), p[1]));
             Function f = getFunctionAt(addr);
             if (f == null) {
                 disassemble(addr);

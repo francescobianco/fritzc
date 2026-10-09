@@ -134,6 +134,47 @@ class Engine:
         return self.peek(0x81)[0]
 
 
+REGS = {'ax': UC_X86_REG_AX, 'bx': UC_X86_REG_BX}
+
+
+def _reg_ids():
+    from unicorn import x86_const as x
+    return {n: getattr(x, f'UC_X86_REG_{n.upper()}')
+            for n in ('ax', 'bx', 'cx', 'dx', 'si', 'di', 'bp', 'flags')}
+
+
+HALT_OFFSET = 0xFFF0    # near-return target inside the engine segment
+ENGINE_STACK = 0x2704   # the module runs on its own stack, SS = CS
+STACK_SCRATCH = range(ENGINE_STACK - 0x400, ENGINE_STACK)   # written by calls
+
+
+def call_near(eng, address, regs=None, max_instructions=50_000_000):
+    """Calls the engine routine at `address` (near, DS = ES = SS = CS = SEG,
+    on the module's own stack) with the given registers; returns all
+    registers after its RET."""
+    ids = _reg_ids()
+    eng.poke(HALT_OFFSET, [0xF4])
+    sp = ENGINE_STACK
+    eng.poke16(sp - 2, HALT_OFFSET)
+    eng.uc.reg_write(UC_X86_REG_SS, SEG)
+    eng.uc.reg_write(UC_X86_REG_SP, sp - 2)
+    for seg in (UC_X86_REG_DS, UC_X86_REG_ES, UC_X86_REG_CS):
+        eng.uc.reg_write(seg, SEG)
+    for name, value in (regs or {}).items():
+        eng.uc.reg_write(ids[name], value & 0xFFFF)
+    eng.uc.reg_write(UC_X86_REG_IP, address)
+    eng.uc.emu_start(SEG * 16 + address, SEG * 16 + HALT_OFFSET, count=max_instructions)
+    return {name: eng.uc.reg_read(rid) for name, rid in ids.items()}
+
+
+def snapshot(eng):
+    return bytearray(eng.uc.mem_read(SEG * 16, 0x10000))
+
+
+def restore(eng, image):
+    eng.uc.mem_write(SEG * 16, bytes(image))
+
+
 def square(name):
     """'e2' -> UI square index used by command 2 (8*rank + file - 9)."""
     return 8 * int(name[1]) + (ord(name[0]) - ord('a') + 1) - 9
