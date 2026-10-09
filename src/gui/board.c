@@ -152,3 +152,54 @@ void board_draw(Screen *screen, const Settings *settings, const GameBoard *board
                 board_draw_piece_square(screen, settings, rank, file, color, type);
         }
 }
+
+void board_cursor_draw(Screen *screen, const Settings *settings, int rank, int file)
+{
+    const Layout *l = &layout_vga;
+    uint8_t color = (uint8_t)settings->color_ac30;
+    if (!(settings->flip_board & 1))
+        rank = 9 - rank;
+    else
+        file = 9 - file;
+    uint16_t x = (uint16_t)((file - 1) * l->square_w + l->board_x);
+    uint16_t y = (uint16_t)((rank - 1) * l->square_h + l->board_y);
+    uint16_t n = gfx_scale_line(3);
+    uint16_t i;
+    for (i = 0; i < n; i++, x++, y++)
+        gfx_draw_rect(screen, x, y, l->square_w - 2 * i, l->square_h - 2 * i, color,
+                      GFX_ROP_COPY);
+    for (; i < 3; i++, x++) {
+        gfx_vline(screen, x, y, l->square_h - 2 * n, color);
+        gfx_vline(screen, l->square_w + x - 2 * i - 1, y, l->square_h - 2 * n, color);
+    }
+}
+
+void board_redraw_square(Screen *screen, const Settings *settings,
+                         const GameBoard *board, int rank, int file)
+{
+    if (rank < 1 || rank > 8 || file < 1 || file > 8)
+        return;   /* the original would index outside DS:048C */
+    uint8_t code = game_board_at(board, file, rank);
+    int type = code & 7;
+    if (type == PIECE_NONE)
+        board_draw_empty_square(screen, settings, rank, file);
+    else
+        board_draw_piece_square(screen, settings, rank, file, (int8_t)code >> 3, type);
+}
+
+bool board_square_at(const Settings *settings, int x, int y, int *rank, int *file)
+{
+    const Layout *l = &layout_vga;
+    if (!(l->board_x <= x && l->board_x + 8 * l->square_w > x &&
+          l->board_y <= y && l->board_y + 8 * l->square_h > y))
+        return false;
+    int f = (x - l->board_x) / l->square_w + 1;
+    int r = (y - l->board_y) / l->square_h + 1;
+    if (settings->flip_board & 1)
+        f = 9 - f;
+    else
+        r = 9 - r;
+    *rank = r;
+    *file = f;
+    return true;
+}

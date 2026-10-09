@@ -51,17 +51,9 @@ capture() {  # NAME PAR
     fi
 }
 
-# Regions reconstructed so far: menu bar, desktop pattern, outer frame,
-# message box, arrow buttons, board frame, squares and pieces (except h3,
-# where the original shows the square cursor and the mouse pointer), logo,
-# clocks, status panel, book line up to the book size, notation panel with
-# the move input cursor, panel shadows. Outside these regions only h3 and
-# the book size still differ.
-REGIONS="0,0,640,15 5,20,11,380 612,20,635,380 5,20,635,35 0,15,640,20 0,472,640,480
-0,15,5,480 635,15,640,480 5,380,635,472 354,181,496,229 10,34,16,366 336,34,342,366 10,34,342,40 10,360,342,366
-16,40,336,240 16,240,296,360 296,280,336,360 354,36,582,124
-514,181,596,229 354,232,604,258 354,348,554,364 354,261,596,331 596,268,612,340
-360,331,612,340"
+# The whole screen is reconstructed except the opening book size at the
+# right of the book line (x 554-595, y 348-363), which needs the book loader.
+REGIONS="0,0,640,348 0,348,554,364 596,348,640,364 0,364,640,480"
 
 status=0
 for case in main:$root/dos/fritz251/FRITZ2.PAR exp-colours:$exp_par exp-deutsch:$de_par \

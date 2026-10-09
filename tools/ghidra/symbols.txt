@@ -65,6 +65,10 @@
 0000:914d long_mul keep
 0000:9a0a pstr_append keep
 0a1f:690d long_to_pstr keep
+0a1f:719e board_cursor_draw keep
+0a1f:7843 board_redraw_square keep
+0a1f:c29c board_cursor_move keep
+293b:1fb6 mouse_set_shape keep
 0a1f:65bb ui_text_line keep
 0a1f:64b5 ui_clear_text_area keep
 19e7:22ac message_get keep

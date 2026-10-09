@@ -248,8 +248,19 @@ Translated in `src/game/settings.c`.
   background, silhouette (body colour) and outline. Options from
   `FRITZ2.PAR`: `0x1D4` → `[B154]` flipped board, `0x1D6` → `[AF40]` swapped
   colours. **[verified, incl. flipped board]**
+- Square cursor `0a1f:719e(rank, file)`: three nested rectangles in
+  `[AC30]`. It marks the square under the mouse pointer: `0000:6c2a…6cc2`
+  maps the pointer to a square (`board_x <= x < board_x + 8·40`, same for
+  y, ranks mirrored unless flipped) and `0a1f:c29c` moves the cursor,
+  repainting the previous square with `0a1f:7843`. The move input field
+  draws it at start (`0000:6b1d`) on the square under the pointer, which
+  the mouse driver reset puts at the screen centre (320, 240) = h3.
+  **[verified at start; tracking translated, not yet compared in DOSBox]**
+- Mouse pointer: shape 0 of the table `DS:69F8` (set by `0000:7dd3` via
+  `293b:1fb6`, int 33h function 9): 16×16 AND/XOR masks, hot spot (0, 0).
+  The port composes it like the DOS driver. **[verified]**
 - Not translated yet: `0a1f:73b0` and the opening-book check, called only
-  when `[4256] != 0`; the square cursor drawn on h3 at start.
+  when `[4256] != 0`.
 
 ## 9. Logo (`FRITZ2.IMG`)
 
@@ -385,8 +396,9 @@ the DOSBox window has focus.
 
 ## 15. Next steps
 
-1. The square cursor on h3 and the mouse pointer; the book size (opening
-   book loader, `[7190]`).
+1. The book size (opening book loader, `[7190]`): the only part of the
+   start screen still missing.
+2. Menus (F1–F6), keyboard and mouse clicks in the main loop `0000:7a39`.
 2. Decode the remaining `FRITZ2.PAR` fields.
 3. Annotate the Ghidra project with the names of the functions identified so far.
 4. Check whether `FRITZ2.BIN` is the engine: trace how `FRITZ2.EXE` loads it

@@ -8,6 +8,7 @@
  *              [--reference capture.bmp] [--dump out.bmp]
  *   --data DIR   original Fritz 2.51 files (default: dos/fritz251)
  *   --par FILE   settings file (default: DIR/FRITZ2.PAR, if present)
+ *   --mouse X,Y  move the pointer there before --dump (tests the tracking)
  *   --free-kb N  free memory shown in the status panel (default 105, what
  *                the original FRITZ2.EXE shows in the reference DOSBox)
  *   With --reference: Tab toggles port/reference, D shows the differences
@@ -22,10 +23,12 @@
 #include "desktop.h"
 #include "exe.h"
 #include "font.h"
+#include "board.h"
 #include "game_board.h"
 #include "gfx.h"
 #include "language.h"
 #include "logo.h"
+#include "mouse.h"
 #include "platform.h"
 #include "screen.h"
 #include "settings.h"
@@ -50,30 +53,71 @@ static const char *data_file(const char *dir, const char *name)
     return path;
 }
 
-static void render(Screen *screen, const Exe *exe, const Settings *settings,
-                   const Language *lan, const Logo *logo, long free_kb)
-{
+/* Program state kept between frames. */
+typedef struct App {
+    Screen base;          /* video memory without the mouse pointer */
     GameBoard board;
     UiState ui;
+    const Settings *settings;
+    int mouse_x, mouse_y; /* int 33h reset centres the pointer */
+    int cursor_rank, cursor_file;  /* [B110], [B0FC] */
+} App;
 
-    ui_state_init(&ui, exe, settings);
+static void app_init(App *app, const Exe *exe, const Settings *settings,
+                     const Language *lan, const Logo *logo, long free_kb)
+{
+    app->settings = settings;
+    ui_state_init(&app->ui, exe, settings);
     if (free_kb >= 0)
-        ui.free_memory_kb = free_kb;
-
+        app->ui.free_memory_kb = free_kb;
     /* Start position: FRITZ2.PAR game record (0000:1483 copies DS:AEF6),
        or a new game (0a1f:70ed). */
     if (settings->has_game)
-        memcpy(board.squares, settings->start_board, sizeof board.squares);
+        memcpy(app->board.squares, settings->start_board, sizeof app->board.squares);
     else
-        game_board_setup(&board);
+        game_board_setup(&app->board);
+
     gfx_set_scale(&gfx_scale_vga);
-    screen_clear(screen, COLOR_BLACK);
-    desktop_draw(screen, settings, lan, &board, logo, &ui);
+    screen_clear(&app->base, COLOR_BLACK);
+    desktop_draw(&app->base, settings, lan, &app->board, logo, &app->ui);
+
+    /* The move input field ends with the square cursor (0000:6b1d) on the
+       square under the pointer. */
+    app->mouse_x = SCREEN_WIDTH / 2;
+    app->mouse_y = SCREEN_HEIGHT / 2;
+    app->cursor_rank = app->cursor_file = 0;
+    if (board_square_at(settings, app->mouse_x, app->mouse_y,
+                        &app->cursor_rank, &app->cursor_file))
+        board_cursor_draw(&app->base, settings, app->cursor_rank, app->cursor_file);
+}
+
+/* 0000:6c85 + 0a1f:c29c: the square cursor follows the pointer. */
+static void app_mouse_move(App *app, int x, int y)
+{
+    int rank, file;
+    app->mouse_x = x;
+    app->mouse_y = y;
+    if (!board_square_at(app->settings, x, y, &rank, &file))
+        return;
+    if (rank == app->cursor_rank && file == app->cursor_file)
+        return;
+    board_redraw_square(&app->base, app->settings, &app->board,
+                        app->cursor_rank, app->cursor_file);
+    app->cursor_rank = rank;
+    app->cursor_file = file;
+    board_cursor_draw(&app->base, app->settings, rank, file);
+}
+
+static void app_frame(const App *app, Screen *out)
+{
+    *out = app->base;
+    mouse_draw_pointer(out, app->mouse_x, app->mouse_y, mouse_shape(0));
 }
 
 int main(int argc, char **argv)
 {
     static Screen native, reference, diff;
+    static App app;
     const char *data_dir = "dos/fritz251";
     const char *reference_path = NULL;
     const char *dump_path = NULL;
@@ -85,11 +129,14 @@ int main(int argc, char **argv)
     Exe exe;
     int scale = 2;
     long free_kb = -1;
+    int move_x = -1, move_y = -1;
     View view = VIEW_NATIVE;
 
     for (int i = 1; i < argc; i++) {
         if (strcmp(argv[i], "--scale") == 0 && i + 1 < argc)
             scale = atoi(argv[++i]);
+        else if (strcmp(argv[i], "--mouse") == 0 && i + 1 < argc)
+            sscanf(argv[++i], "%d,%d", &move_x, &move_y);
         else if (strcmp(argv[i], "--free-kb") == 0 && i + 1 < argc)
             free_kb = atol(argv[++i]);
         else if (strcmp(argv[i], "--data") == 0 && i + 1 < argc)
@@ -101,7 +148,7 @@ int main(int argc, char **argv)
         else if (strcmp(argv[i], "--dump") == 0 && i + 1 < argc)
             dump_path = argv[++i];
         else {
-            fprintf(stderr, "usage: %s [--data DIR] [--par FRITZ2.PAR] [--free-kb N] [--scale N] "
+            fprintf(stderr, "usage: %s [--data DIR] [--par FRITZ2.PAR] [--free-kb N] [--mouse X,Y] [--scale N] "
                             "[--reference capture.bmp] [--dump out.bmp]\n", argv[0]);
             return 1;
         }
@@ -113,7 +160,7 @@ int main(int argc, char **argv)
         fprintf(stderr, "%s\n", error);
         return 1;
     }
-    if (!fonts_load(&exe) || !sprites_load(&exe)) {
+    if (!fonts_load(&exe) || !sprites_load(&exe) || !mouse_shapes_load(&exe)) {
         fprintf(stderr, "FRITZ2.EXE: font or bitmap data not found\n");
         return 1;
     }
@@ -128,9 +175,12 @@ int main(int argc, char **argv)
     if (!logo_load(&logo, data_file(data_dir, "FRITZ2.IMG")))
         fprintf(stderr, "FRITZ2.IMG: cannot load the logo\n");
 
+    app_init(&app, &exe, &settings, &lan, &logo, free_kb);
     if (dump_path) {
         /* Headless rendering: save the frame and exit. */
-        render(&native, &exe, &settings, &lan, &logo, free_kb);
+        if (move_x >= 0)
+            app_mouse_move(&app, move_x, move_y);
+        app_frame(&app, &native);
         return platform_save_screen(&native, dump_path) ? 0 : 1;
     }
 
@@ -139,7 +189,7 @@ int main(int argc, char **argv)
     if (reference_path && !platform_load_reference(reference_path, &reference))
         reference_path = NULL;
 
-    render(&native, &exe, &settings, &lan, &logo, free_kb);
+    app_frame(&app, &native);
     if (reference_path) {
         int different = 0;
         make_diff(&native, &reference, &diff);
@@ -155,6 +205,8 @@ int main(int argc, char **argv)
         while (platform_poll_event(&ev)) {
             if (ev.type == PLATFORM_EVENT_QUIT)
                 running = false;
+            else if (ev.type == PLATFORM_EVENT_MOUSE_MOVE)
+                app_mouse_move(&app, ev.x, ev.y);
             else if (ev.type == PLATFORM_EVENT_KEY) {
                 if (ev.key == SDLK_ESCAPE)
                     running = false;
@@ -164,6 +216,7 @@ int main(int argc, char **argv)
                     view = view == VIEW_DIFF ? VIEW_NATIVE : VIEW_DIFF;
             }
         }
+        app_frame(&app, &native);
         platform_present(view == VIEW_REFERENCE ? &reference
                          : view == VIEW_DIFF ? &diff : &native);
         SDL_Delay(16);

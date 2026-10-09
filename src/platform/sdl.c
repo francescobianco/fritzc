@@ -31,6 +31,7 @@ bool platform_init(const char *title, int scale)
         return false;
     }
     SDL_SetTextureScaleMode(texture, SDL_SCALEMODE_NEAREST);
+    SDL_HideCursor();   /* the program draws its own pointer */
     return true;
 }
 
