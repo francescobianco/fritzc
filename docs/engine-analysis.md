@@ -146,6 +146,15 @@ below `0x2704`). **[verified]**
   Promotions take the piece from CL (`0x80` queen, `0x81` rook, `0xC0`
   bishop, `0xC1` knight). **[verified]**
 
+- Make move `0x6f81`: restores the ply's hash key, moves the piece
+  (evaluation terms out / in, with the negamax flip `-ax - 0x10`, hash and
+  attacks), then by CL: capture (material value `0x710E`, counters via
+  `0x714E` / `0x716E`, score clamp in low-material endings when a counter
+  reaches 0), en passant (victim square per ply at `0xE7A`), castling
+  (rook moved with hash and attacks only, `+0x18 - 2·[0x650]`). Unmake
+  `0x719e` restores board, lists, attacks and counters; hash and
+  evaluation are per ply. **[verified]**
+
 ## 7. C reconstruction and differential tests
 
 `src/engine/` keeps the 64 KB segment as `Engine.mem` with the same offsets,
@@ -155,7 +164,11 @@ game played by the original engine in the harness, runs the routine in the
 emulator and in C (`libfritzengine.so` through ctypes) and requires the two
 64 KB images to be identical, apart from the stack area. States come from a
 game the original plays at depth 3 and from three random legal games of 60
-plies (fixed seed), 192 in total.
+plies (fixed seed) and three scripted games that reach castling, en
+passant and promotions. Make/unmake are tested with the exact registers
+and memory the original generator passes them, recorded by a hook while it
+runs (`capture_calls`). `ENGINE_QUICK=1` skips the slow exhaustive
+evaluation-term test.
 
 The C engine needs the module's data tables (piece values, direction
 tables, …). As with the interface artwork, they are not copied into the
@@ -168,6 +181,7 @@ segment and run its own code on it.
 | `0x8692` | `eng_see` | identical: 717 444 calls on 192 states |
 | `0x45F4` dispatch (hash + attacks), `0x4646`, `0x4624` | `eng_piece_toggle`, `eng_slider_update`, `eng_square_update` | identical: 30 270 calls |
 | `0x632A` / `0x634A` dispatch, `0x637C…0x6A06` | `eng_eval_remove`, `eng_eval_add` | identical: 116 286 calls (AX, BP, CX, memory) |
+| `0x6f81` make move, `0x719e` unmake move | `eng_make_move`, `eng_unmake_move` | identical: 14 460 calls captured from the original move generator (807 captures, 20 castlings, 4 en passant, 32 promotions) |
 | `0x29d8` hash sizing | `engine_hash_exponent` | translated (§4) |
 
 ## 8. Plan

@@ -81,6 +81,13 @@ void eng_square_update(Engine *e, uint16_t di);
 void eng_eval_add(Engine *e, EngRegs *r);
 void eng_eval_remove(Engine *e, EngRegs *r);
 
+/* 0x6f81: makes the move r->si -> r->di (flags r->cx, side r->dx, ply ×2
+   in r->bp); r->ax = evaluation after the move (see make_move.c). */
+void eng_make_move(Engine *e, EngRegs *r);
+
+/* 0x719e: takes the move back (same registers). */
+void eng_unmake_move(Engine *e, EngRegs *r);
+
 /* 0x8692: static exchange evaluation of the piece on `si` capturing on
    `di`, side chosen by bit 0x10 of `dx`. Returns AX (AH = gain estimate,
    AL = attacker balance). */

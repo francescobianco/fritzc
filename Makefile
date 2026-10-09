@@ -7,7 +7,8 @@
 #   make original   run the original Fritz 2.51 in DOSBox
 #   make unpack     unpack FRITZ2.EXE into build/re/FRITZ2.UNP.EXE
 #   make engine-demo the original FRITZ2.BIN plays itself in a CPU emulator
-#   make engine-test C engine routines vs the original ones (differential)
+#   make engine-test C engine routines vs the original ones (differential;
+#                    QUICK=1 skips the slow exhaustive evaluation test)
 #   make clean      remove the CMake build directory
 #
 # Variables: DATA (original files, default dos/fritz251), SCALE (window
@@ -40,7 +41,7 @@ engine-demo: $(VENV)/bin/python check-data
 	$(VENV)/bin/python tools/engine/harness.py $(DATA)/FRITZ2.BIN 4 10
 
 engine-test: build $(VENV)/bin/python check-data
-	$(VENV)/bin/python tests/engine/diff.py $(DATA)/FRITZ2.BIN $(BUILD)/libfritzengine.so
+	ENGINE_QUICK=$(QUICK) $(VENV)/bin/python tests/engine/diff.py $(DATA)/FRITZ2.BIN $(BUILD)/libfritzengine.so
 
 $(BUILD)/CMakeCache.txt:
 	cmake -S . -B $(BUILD) $(CMAKE_FLAGS)

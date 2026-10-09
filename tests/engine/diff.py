@@ -74,6 +74,29 @@ def collect_random_states(path, games=3, plies=60, seed=1993):
     return states
 
 
+# Scripted games that reach the special moves (castling both sides, en
+# passant both sides, promotions with and without capture).
+SCRIPTS = [
+    'e2e4 e7e5 g1f3 b8c6 f1c4 f8c5 d2d3 g8f6 c1e3 d7d6 b1c3 c8e6 d1d2 d8d7',
+    'e2e4 a7a6 e4e5 d7d5 a2a3 h7h5 g2g4 h5g4 h2h4 g4h3',
+    'h2h4 g7g5 h4g5 f7f6 g5f6 a7a6 f6e7 a6a5 g2g4 a5a4 g4g5 a4a3 g5g6 a3b2',
+]
+
+
+def collect_scripted_states(path):
+    eng = harness.Engine(path)
+    eng.command(0xFF)
+    states = []
+    for script in SCRIPTS:
+        eng.command(0x00)
+        for move in script.split():
+            frm, to = harness.square(move[:2]), harness.square(move[2:])
+            if eng.command(0x02, bytes([0, frm, to, 0])) != 0:
+                raise RuntimeError(f'illegal scripted move {move}')
+            states.append(harness.snapshot(eng))
+    return states
+
+
 def compare(a, b):
     return [i for i in range(0x10000) if a[i] != b[i] and i not in IGNORE]
 
@@ -180,9 +203,72 @@ def test_eval_terms(eng, c, state, rng):
     return calls, bad
 
 
+def capture_calls(eng, state, addresses, command=0x0F, limit=400):
+    """Runs `command` on `state` in the emulator and records (address,
+    registers, memory image) at every entry of the given routines."""
+    from unicorn import UC_HOOK_CODE
+    ids = harness._reg_ids()
+    seen = []
+
+    def hook(uc, address, size, user):
+        if len(seen) < limit:
+            regs = {n: uc.reg_read(r) for n, r in ids.items()}
+            seen.append((address - harness.SEG * 16, regs, harness.snapshot(eng)))
+
+    handles = [eng.uc.hook_add(UC_HOOK_CODE, hook, begin=harness.SEG * 16 + a,
+                               end=harness.SEG * 16 + a) for a in addresses]
+    harness.restore(eng, state)
+    eng.command(command)
+    for h in handles:
+        eng.uc.hook_del(h)
+    return seen
+
+
+MOVE_KINDS = {}
+
+
+def move_kind(cl):
+    if cl & 0x80 and cl & 0xc1 not in (0, 0x40, 0x41):
+        return 'promotion'
+    if cl & 0x3e:
+        return 'capture'
+    if (cl & 0xc1) == 0x40:
+        return 'en passant'
+    if (cl & 0xc1) == 0x41:
+        return 'double push'
+    if (cl & 0xc1) == 0x01:
+        return 'castling'
+    return 'quiet'
+
+
+def test_make_unmake(eng, c, state):
+    """0x6f81 / 0x719e with the registers the move generator really uses."""
+    bad = []
+    calls = capture_calls(eng, state, (0x6F81, 0x719E))
+    for address, regs, image in calls:
+        if address == 0x719E:
+            flags = image[regs['bp'] + 0x1012]
+            MOVE_KINDS[move_kind(flags)] = MOVE_KINDS.get(move_kind(flags), 0) + 1
+        harness.restore(eng, image)
+        keep = {k: regs[k] for k in ('ax', 'bx', 'cx', 'dx', 'si', 'di', 'bp')}
+        r = harness.call_near(eng, address, keep)
+        c.load(image)
+        cr = Regs(**keep)
+        fn = 'eng_make_move' if address == 0x6F81 else 'eng_unmake_move'
+        getattr(c.lib, fn)(c.buf, ctypes.byref(cr))
+        mem = compare(harness.snapshot(eng), c.image())
+        outs = ('ax', 'cx') if address == 0x6F81 else ('cx', 'dx')
+        if any(r[o] != getattr(cr, o) for o in outs) or mem:
+            bad.append((fn, {k: hex(v) for k, v in keep.items()},
+                        {o: (hex(r[o]), hex(getattr(cr, o))) for o in outs},
+                        [hex(i) for i in mem[:4]]))
+    return len(calls), bad
+
+
 def run(path_bin, path_lib):
     eng, states = collect_states(path_bin)
     states += collect_random_states(path_bin)
+    states += collect_scripted_states(path_bin)
     c = CEngine(path_lib)
     import random
     rng = random.Random(7)
@@ -210,6 +296,12 @@ def run(path_bin, path_lib):
               f'rebuild vs incremental {len(diff3)} diffs' + ('' if ok else '  FAIL'))
         if diff2:
             print('   first:', [hex(i) for i in diff2[:8]])
+        calls4, bad4 = test_make_unmake(eng, c, state)
+        failures += bool(bad4)
+        print(f'          make/unmake: {calls4} calls, {len(bad4)} mismatches'
+              + ''.join(f'\n            {b}' for b in bad4[:3]))
+        if os.environ.get('ENGINE_QUICK'):
+            continue
         calls3, bad3 = test_eval_terms(eng, c, state, rng)
         failures += bool(bad3)
         print(f'          eval terms: {calls3} calls, {len(bad3)} mismatches'
@@ -223,6 +315,7 @@ def run(path_bin, path_lib):
         print(f'          see: {calls} calls, {len(bad)} mismatches'
               + ''.join(f'\n            si={a:#x} di={b:#x} dl={d:#x} orig={o:#06x} c={m:#06x}'
                         for a, b, d, o, m in bad[:5]))
+    print('make/unmake move kinds:', MOVE_KINDS)
     return failures
 
 
