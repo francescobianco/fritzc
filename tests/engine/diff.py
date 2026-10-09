@@ -265,6 +265,26 @@ def test_make_unmake(eng, c, state):
     return len(calls), bad
 
 
+def test_generate_core(eng, c, state):
+    """0x72fe..0x7325 from the real state at 0x72fe during command 0x0F:
+    the move lists and every byte of the segment must match."""
+    calls = capture_calls(eng, state, (0x72FE,), limit=1)
+    bad = []
+    for address, regs, image in calls:
+        harness.restore(eng, image)
+        keep = {k: regs[k] for k in ('ax', 'bx', 'cx', 'dx', 'si', 'di', 'bp')}
+        harness.call_near(eng, address, keep)
+        c.load(image)
+        cr = Regs(**keep)
+        c.lib.eng_generate_legal_core(c.buf, ctypes.byref(cr))
+        orig = harness.snapshot(eng)
+        mem = compare(orig, c.image())
+        if mem:
+            bad.append((f'moves orig={word(orig, 0x640) // 2} c={word(c.image(), 0x640) // 2}',
+                        [hex(i) for i in mem[:6]]))
+    return len(calls), bad
+
+
 def run(path_bin, path_lib):
     eng, states = collect_states(path_bin)
     states += collect_random_states(path_bin)
@@ -296,6 +316,10 @@ def run(path_bin, path_lib):
               f'rebuild vs incremental {len(diff3)} diffs' + ('' if ok else '  FAIL'))
         if diff2:
             print('   first:', [hex(i) for i in diff2[:8]])
+        calls5, bad5 = test_generate_core(eng, c, state)
+        failures += bool(bad5)
+        print(f'          generate: {calls5} runs, {len(bad5)} mismatches'
+              + ''.join(f'\n            {b}' for b in bad5[:3]))
         calls4, bad4 = test_make_unmake(eng, c, state)
         failures += bool(bad4)
         print(f'          make/unmake: {calls4} calls, {len(bad4)} mismatches'

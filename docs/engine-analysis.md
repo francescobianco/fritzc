@@ -155,6 +155,18 @@ below `0x2704`). **[verified]**
   `0x719e` restores board, lists, attacks and counters; hash and
   evaluation are per ply. **[verified]**
 
+- Move order (the search depends on it): captures first, victims in the
+  opponent's piece-list order (most valuable first, king excluded) and, for
+  each victim, attackers from the highest piece bit down (pawns first);
+  then en passant (left pawn, right pawn); then castling (short, long; only
+  the square next to the king is tested for attacks, the rest is left to the
+  legality test); then quiet moves scanning the empty squares in the order
+  of the linked list at `0x616C` (starting at `0x174`), for each square the
+  pieces able to go there from the highest bit down, pawn pushes included.
+  Promotions are tried as queen, rook, bishop, knight (`0x7326` steps the
+  flag bits: `inc cl`, `add cl, 0x3F`). Each legal move gets the score
+  "evaluation after the move − SEE gain × 256". **[verified]**
+
 ## 7. C reconstruction and differential tests
 
 `src/engine/` keeps the 64 KB segment as `Engine.mem` with the same offsets,
@@ -181,6 +193,7 @@ segment and run its own code on it.
 | `0x8692` | `eng_see` | identical: 717 444 calls on 192 states |
 | `0x45F4` dispatch (hash + attacks), `0x4646`, `0x4624` | `eng_piece_toggle`, `eng_slider_update`, `eng_square_update` | identical: 30 270 calls |
 | `0x632A` / `0x634A` dispatch, `0x637C…0x6A06` | `eng_eval_remove`, `eng_eval_add` | identical: 116 286 calls (AX, BP, CX, memory) |
+| `0x72fe…0x7325` with `0x7408` (captures), `0x74a8` (en passant), `0x79c1` (castling + quiet), `0x7326` (legality + scoring) | `eng_generate_legal_core` | identical: 230 positions, whole segment byte for byte (lists, scores, flags, scratch) |
 | `0x6f81` make move, `0x719e` unmake move | `eng_make_move`, `eng_unmake_move` | identical: 14 460 calls captured from the original move generator (807 captures, 20 castlings, 4 en passant, 32 promotions) |
 | `0x29d8` hash sizing | `engine_hash_exponent` | translated (§4) |
 

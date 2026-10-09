@@ -26,7 +26,8 @@ set(ENGINE_SOURCES
     src/engine/attacks.c
     src/engine/see.c
     src/engine/eval_pieces.c
-    src/engine/make_move.c)
+    src/engine/make_move.c
+    src/engine/movegen.c)
 add_library(fritzengine SHARED ${ENGINE_SOURCES})
 target_include_directories(fritzengine PRIVATE include)
 

@@ -88,6 +88,12 @@ void eng_make_move(Engine *e, EngRegs *r);
 /* 0x719e: takes the move back (same registers). */
 void eng_unmake_move(Engine *e, EngRegs *r);
 
+/* 0x81a3: attack word of the opponent on the own king (0 = not in check). */
+uint16_t eng_in_check(Engine *e, uint8_t dl);
+
+/* 0x72fe..0x7325: legal move lists (see movegen.c). */
+void eng_generate_legal_core(Engine *e, EngRegs *r);
+
 /* 0x8692: static exchange evaluation of the piece on `si` capturing on
    `di`, side chosen by bit 0x10 of `dx`. Returns AX (AH = gain estimate,
    AL = attacker balance). */
