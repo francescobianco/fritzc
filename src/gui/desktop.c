@@ -6,6 +6,7 @@
 #include "font.h"
 #include "gfx.h"
 #include "logo.h"
+#include "panels.h"
 #include "layout.h"
 #include "settings.h"
 #include "ui_text.h"
@@ -85,11 +86,11 @@ static void arrow_buttons(Screen *screen, const Settings *settings, uint8_t colo
    arrow buttons (0000:2037) and the menu bar at the end. 0000:022f draws
    nothing on the start screen; 0a1f:7d72 is board_frame_draw and
    0a1f:78ac(DS:0B8E, DS:048C) is board_draw. Not yet
-   translated, in call order: 0a1f:00a4, 0000:21c5, the 0a1f:7a98 group
-   (instead of the logo), 0000:2372, 0000:24ee, 0000:31e5. 19e7:a994 is
-   logo_draw. */
+   translated: the 0a1f:7a98 group (drawn instead
+   of the logo in some states), 0000:31e5 (notation text). 19e7:a994 is
+   logo_draw; 0000:21c5, 0000:2372, 0000:24ee are in panels.c. */
 void desktop_draw(Screen *screen, const Settings *settings, const Language *lan,
-                  const GameBoard *board, const Logo *logo)
+                  const GameBoard *board, const Logo *logo, const UiState *ui)
 {
     const Layout *l = &layout_vga;
     uint16_t top = l->menu_bar_height + 1;
@@ -106,6 +107,9 @@ void desktop_draw(Screen *screen, const Settings *settings, const Language *lan,
     board_frame_draw(screen, settings);
     board_draw(screen, settings, board);
     arrow_buttons(screen, settings, (uint8_t)settings->color_b0c6, 0x23, 0xa0, 0x84, 0x18e);
+    status_panel_draw(screen, settings, lan, ui);
+    if (ui->engine_active & 1)
+        clocks_draw(screen, settings, ui);
     /* Drawn when !([B161] & [005E] & 1) && !([0052] & 1); the start screen
        satisfies both. */
     if (logo && logo->rows)
@@ -114,4 +118,11 @@ void desktop_draw(Screen *screen, const Settings *settings, const Language *lan,
     /* Menu bar text and the line below it. */
     ui_message(screen, settings, lan, 0x1c, settings->color_ad6e, 0, 1);
     gfx_hline(screen, 0, l->menu_bar_height, width, (uint8_t)settings->color_b0c6);
+    if (ui->engine_active & 1)
+        book_line_draw(screen, settings, ui);
+    notation_panel_draw(screen, settings);
+    /* 0000:31e5 (notation text) is not translated yet. */
+
+    /* First pass of the main loop 0000:7a39. */
+    memory_line_draw(screen, settings, ui);
 }

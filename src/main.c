@@ -4,10 +4,12 @@
  * (SEG:OFF addresses in the unpacked executable). Artwork and texts are read
  * at runtime from the user's original distribution (--data).
  *
- * Usage: fritz [--data DIR] [--par FRITZ2.PAR] [--scale N]
+ * Usage: fritz [--data DIR] [--par FRITZ2.PAR] [--free-kb N] [--scale N]
  *              [--reference capture.bmp] [--dump out.bmp]
  *   --data DIR   original Fritz 2.51 files (default: dos/fritz251)
  *   --par FILE   settings file (default: DIR/FRITZ2.PAR, if present)
+ *   --free-kb N  free memory shown in the status panel (default 105, what
+ *                the original FRITZ2.EXE shows in the reference DOSBox)
  *   With --reference: Tab toggles port/reference, D shows the differences
  *   (mismatching pixels in red), Esc quits.
  */
@@ -28,6 +30,7 @@
 #include "screen.h"
 #include "settings.h"
 #include "sprites.h"
+#include "ui_state.h"
 
 typedef enum View { VIEW_NATIVE, VIEW_REFERENCE, VIEW_DIFF } View;
 
@@ -47,15 +50,20 @@ static const char *data_file(const char *dir, const char *name)
     return path;
 }
 
-static void render(Screen *screen, const Settings *settings, const Language *lan,
-                   const Logo *logo)
+static void render(Screen *screen, const Exe *exe, const Settings *settings,
+                   const Language *lan, const Logo *logo, long free_kb)
 {
     GameBoard board;
+    UiState ui;
+
+    ui_state_init(&ui, exe, settings);
+    if (free_kb >= 0)
+        ui.free_memory_kb = free_kb;
 
     game_board_setup(&board);
     gfx_set_scale(&gfx_scale_vga);
     screen_clear(screen, COLOR_BLACK);
-    desktop_draw(screen, settings, lan, &board, logo);
+    desktop_draw(screen, settings, lan, &board, logo, &ui);
 }
 
 int main(int argc, char **argv)
@@ -71,11 +79,14 @@ int main(int argc, char **argv)
     Logo logo;
     Exe exe;
     int scale = 2;
+    long free_kb = -1;
     View view = VIEW_NATIVE;
 
     for (int i = 1; i < argc; i++) {
         if (strcmp(argv[i], "--scale") == 0 && i + 1 < argc)
             scale = atoi(argv[++i]);
+        else if (strcmp(argv[i], "--free-kb") == 0 && i + 1 < argc)
+            free_kb = atol(argv[++i]);
         else if (strcmp(argv[i], "--data") == 0 && i + 1 < argc)
             data_dir = argv[++i];
         else if (strcmp(argv[i], "--reference") == 0 && i + 1 < argc)
@@ -85,7 +96,7 @@ int main(int argc, char **argv)
         else if (strcmp(argv[i], "--dump") == 0 && i + 1 < argc)
             dump_path = argv[++i];
         else {
-            fprintf(stderr, "usage: %s [--data DIR] [--par FRITZ2.PAR] [--scale N] "
+            fprintf(stderr, "usage: %s [--data DIR] [--par FRITZ2.PAR] [--free-kb N] [--scale N] "
                             "[--reference capture.bmp] [--dump out.bmp]\n", argv[0]);
             return 1;
         }
@@ -114,7 +125,7 @@ int main(int argc, char **argv)
 
     if (dump_path) {
         /* Headless rendering: save the frame and exit. */
-        render(&native, &settings, &lan, &logo);
+        render(&native, &exe, &settings, &lan, &logo, free_kb);
         return platform_save_screen(&native, dump_path) ? 0 : 1;
     }
 
@@ -123,7 +134,7 @@ int main(int argc, char **argv)
     if (reference_path && !platform_load_reference(reference_path, &reference))
         reference_path = NULL;
 
-    render(&native, &settings, &lan, &logo);
+    render(&native, &exe, &settings, &lan, &logo, free_kb);
     if (reference_path) {
         int different = 0;
         make_diff(&native, &reference, &diff);

@@ -12,6 +12,8 @@ enum {
     PAR_COLOR_B112 = 0x198,
     PAR_COLOR_AC30 = 0x19a,
     PAR_COLORS_0F4C = 0x19c,
+    PAR_BOOK_DIR = 0x13a,
+    PAR_BOOK_NAME = 0x180,
     PAR_FLIP_BOARD = 0x1d4,
     PAR_SWAP_COLORS = 0x1d6
 };
@@ -43,6 +45,8 @@ void settings_defaults(Settings *s)
     memcpy(s->colors_0f4c, default_colors_0f4c, sizeof s->colors_0f4c);
     s->flip_board = 0;
     s->swap_colors = 0;
+    s->book_dir[0] = '\0';
+    strcpy(s->book_name, "Fritz2");   /* initialised data at DS:4304 */
     /* With a monochrome descriptor (flags bit 0 clear) 19e7:4294 also sets
        DS:0F6C..0F73 to 15; the VGA descriptor is a colour one. */
     if (!(card_vga[0] & 1))
@@ -70,6 +74,10 @@ bool settings_load_par(Settings *s, const char *path)
     s->color_ac30 = read16(rec + PAR_COLOR_AC30);
     for (int i = 0; i < 28; i++)
         s->colors_0f4c[i] = read16(rec + PAR_COLORS_0F4C + 2 * i);
+    memcpy(s->book_dir, rec + PAR_BOOK_DIR, 70);
+    s->book_dir[70] = '\0';
+    memcpy(s->book_name, rec + PAR_BOOK_NAME, 14);
+    s->book_name[14] = '\0';
     s->flip_board = rec[PAR_FLIP_BOARD];
     s->swap_colors = rec[PAR_SWAP_COLORS];
     return true;

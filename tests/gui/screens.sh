@@ -53,17 +53,23 @@ capture() {  # NAME PAR
 
 # Regions reconstructed so far: menu bar, desktop pattern, outer frame,
 # message box, arrow buttons, board frame, squares and pieces (except h3,
-# where the original shows the square cursor and the mouse pointer), logo.
+# where the original shows the square cursor and the mouse pointer), logo,
+# clocks, status panel, book line up to the book size, notation frame and
+# panel shadows.
 REGIONS="0,0,640,15 5,20,11,380 612,20,635,380 5,20,635,35 0,15,640,20 0,472,640,480
 0,15,5,480 635,15,640,480 5,380,635,472 354,181,496,229 10,34,16,366 336,34,342,366 10,34,342,40 10,360,342,366
-16,40,336,240 16,240,296,360 296,280,336,360 354,36,582,124"
+16,40,336,240 16,240,296,360 296,280,336,360 354,36,582,124
+514,181,596,229 354,232,604,258 354,348,554,364 354,261,596,300 596,268,612,340
+360,331,612,340"
 
 status=0
 for case in main:$root/dos/fritz251/FRITZ2.PAR exp-colours:$exp_par exp-deutsch:$de_par \
             exp-flip:$flip_par; do
     name=${case%%:*} par=${case#*:}
     capture "$name" "$par"
-    "$build/fritz" --data "$root/dos/fritz251" --par "$par" --dump "$caps/$name/native.bmp"
+    # The captures run the unpacked EXE, which leaves 101 kB free.
+    "$build/fritz" --data "$root/dos/fritz251" --par "$par" --free-kb 101 \
+        --dump "$caps/$name/native.bmp"
     echo "== $name"
     # shellcheck disable=SC2086
     python3 -I "$root/tools/compare/diff.py" "$caps/$name/native.bmp" \

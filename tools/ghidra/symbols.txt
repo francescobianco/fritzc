@@ -44,6 +44,20 @@
 19e7:eb38 img_decode keep
 19e7:a994 logo_draw keep
 293b:ab09 gfx_bitmap_row pascal x y w color bits
+293b:2a12 clock_widget_setup keep
+293b:2abb clock_widget_draw keep
+293b:1ffd dos_largest_block keep
+0a1f:6356 panel_box keep
+0a1f:6432 fill_logical keep
+0a1f:6475 rect_logical keep
+0a1f:00a4 status_panel_draw keep
+0a1f:005c free_memory_kb keep
+0000:21c5 clocks_draw keep
+0000:2372 book_line_draw keep
+0000:24ee notation_panel_draw keep
+0000:056d message_line_draw keep
+0000:7a39 main_loop keep
+19e7:c408 book_set_name keep
 0a1f:65bb ui_text_line keep
 0a1f:64b5 ui_clear_text_area keep
 19e7:22ac message_get keep

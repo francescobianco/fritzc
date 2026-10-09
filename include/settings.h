@@ -14,6 +14,8 @@ typedef struct Settings {
     uint16_t color_b112;         /* [B112]: board frame, second ring */
     uint16_t color_ac30;         /* [AC30]: board frame */
     uint16_t colors_0f4c[28];    /* DS:0F4C..0F83: colour table */
+    char book_dir[71];           /* DS:42BE via 19e7:c408 */
+    char book_name[15];          /* DS:4304 via 19e7:c408 */
     uint8_t flip_board;          /* [B154] */
     uint8_t swap_colors;         /* [AF40] */
 } Settings;

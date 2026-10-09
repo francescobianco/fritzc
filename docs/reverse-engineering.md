@@ -253,7 +253,37 @@ yields `n + 1` copies of the line; height is capped at `40000 / row bytes`.
 `[0F6A]`, rows with `293b:ab09` (VGA driver `293b:abb2`, 1 bits painted) at
 x + 19, frame in `[0F4C]`. **[verified: pixel-identical]**
 
-## 10. Language files (`*.LAN`)
+## 10. Side panels
+
+All in logical coordinates, x = 398 (`0x18E`), width 272 (`0x110`):
+
+- `0a1f:6356(x, y, w, h)` framed panel with shadow: the shadow is a fill
+  at (x+8, y+5) with **AND** colour `[0F5A]` (7) over the background, then
+  fill `[AD6E]` and frame `[B0C6]`. `0a1f:6432` / `0a1f:6475` are plain
+  fill / frame in logical coordinates. **[verified]**
+- `0a1f:00a4` status panel (y 169, h 18): with no database game
+  (`[ADD4] <= 0`) message 2 ("Game"/"Partie") at column 60. **[verified]**
+- Free memory: the main loop `0000:7a39` writes `"<n> kB  "` at column 46,
+  row 172, with `n` = largest free DOS block (`int 21h/48h BX=FFFF`,
+  `0a1f:005c`) × 16 / 1024. Machine dependent: the original shows 105 in the
+  reference DOSBox, the unpacked EXE 101. The port shows a configurable
+  value (`--free-kb`, default 105). **[verified]**
+- `0000:21c5` clocks (only when Fritz is active, `[005E]`): box of
+  9 characters + 10 px at the right of the arrow box; clock widgets
+  `293b:2a12` / `293b:2abb` (table `DS:6F42`, initial text "00:00:00" at
+  `DS:6EF4`, `DS:6F1B`); white's clock at the bottom unless the board is
+  flipped; marker character `0x19` hidden while `[0060]`/`[0062]` are set
+  (`0000:81a5`). **[verified]**
+- `0000:2372` book line (y 254, only when Fritz is active): left text
+  `DS:42A8` (empty at start) at column 1, book name `DS:4304` at column 16,
+  book size `1 << book[0xFE]` at column 25. The book name comes from
+  `FRITZ2.PAR` `0x180` (book directory `0x13A`) via `19e7:c408`.
+  **[verified except the size, which needs the book loader]**
+- `0000:24ee` notation panel `0a1f:6356(398, 190, 272, 55)`. **[verified]**
+- `[005E]` "Fritz active" is toggled by `0000:4c4c`, which also calls
+  `344d:0115`: probably the stub towards `FRITZ2.BIN`.
+
+## 11. Language files (`*.LAN`)
 
 Read block by block by `19e7:b0c4`. Header: word directory offset (`0x42`),
 word `0x4D2`, word block count (36). Directory: one dword file offset per
@@ -271,7 +301,7 @@ character, `[0BAC]` rows) and draws the text in `[B0C6]` at
 `x = 8·column`, `y = sy(y)`, inverted when `colour == [B0C6]`.
 Translated in `src/gui/ui_text.c`. **[verified]**
 
-## 11. Experiment log
+## 12. Experiment log
 
 | # | Hypothesis | Patch | Result |
 |---|---|---|---|
@@ -281,7 +311,7 @@ Translated in `src/gui/ui_text.c`. **[verified]**
 | 4 | `FRITZ2.PAR` offset `0x004` names the language file | PAR: `0x004="FDEUTSCH.LAN"` | Confirmed: German menu bar; the port matches it pixel for pixel |
 | 5 | `FRITZ2.PAR` offset `0x1D4` flips the board | PAR: `0x1d4=1` | Confirmed: white at the top; the port's board matches pixel for pixel |
 
-## 12. Reconstructed functions
+## 13. Reconstructed functions
 
 | Original | C | Status |
 |---|---|---|
@@ -298,6 +328,7 @@ Translated in `src/gui/ui_text.c`. **[verified]**
 | `0a1f:78ac`, `0a1f:74ac`, `0a1f:7632` | `board_draw`, `board_draw_empty_square`, `board_draw_piece_square` | complete except the `[4256]` overlay |
 | `293b:a649`, `293b:a6b0` | `gfx_draw_piece` | complete for VGA |
 | `0a1f:70ed` | `game_board_setup` | complete |
+| `0a1f:6356`, `0a1f:6432`, `0a1f:6475`, `0a1f:00a4` (no game), `0000:21c5`, `293b:2a12/2abb`, `0000:2372` (without book size), `0000:24ee`, `0000:056d` (fill only) | `panels.c` | see §10 |
 | `19e7:e91e`, `19e7:eb38` (+ run decoders `ea1e`, `eaa2`, `eaea`), `19e7:a994`, `293b:ab09` | `logo_load`, `logo_draw` | complete for VGA |
 | `0000:2512` final menu bar and line (`0a1f:67c3(0x1C…)`, `293b:9ab2`) | `desktop_draw` | complete |
 | `19e7:4294` (colours and language only) | `settings_defaults`, `settings_load_par` | partial |
@@ -307,7 +338,7 @@ screenshot pixel for pixel wherever the desktop is visible, with the
 original PAR and with the modified one of experiment 3, including the
 outer frame and the message box. `tests/gui/screens.sh` runs these checks.
 
-## 13. Tools
+## 14. Tools
 
 | Tool | Use |
 |---|---|
@@ -329,11 +360,10 @@ tools/compare/dosbox-run.sh build/captures 15 F1 Up Return sleep:1.5 ctrl+F5
 Note: under Wayland DOSBox runs through XWayland. XTest works as long as
 the DOSBox window has focus.
 
-## 14. Next steps
+## 15. Next steps
 
-1. Remaining panels of `0000:2512`: clocks, status line, notation,
-   opening line (`0a1f:00a4`, `0000:2372`, `0000:24ee`, `0000:31e5`);
-   the square cursor.
+1. Notation text and cursor (`0000:31e5`), the square cursor on the
+   board, the book size (opening book loader, `[7190]`).
 2. Decode the remaining `FRITZ2.PAR` fields.
 3. Annotate the Ghidra project with the names of the functions identified so far.
 4. Check whether `FRITZ2.BIN` is the engine: trace how `FRITZ2.EXE` loads it
