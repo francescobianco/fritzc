@@ -9,6 +9,8 @@ enum {
     PAR_LANGUAGE = 0x004,
     PAR_COLOR_AD6E = 0x194,
     PAR_COLOR_B0C6 = 0x196,
+    PAR_COLOR_B112 = 0x198,
+    PAR_COLOR_AC30 = 0x19a,
     PAR_COLORS_0F4C = 0x19c
 };
 
@@ -34,6 +36,8 @@ void settings_defaults(Settings *s)
     strcpy(s->language_file, "FENGLISH.LAN");
     s->color_ad6e = card_vga[3];
     s->color_b0c6 = 0;
+    s->color_b112 = card_vga[3];
+    s->color_ac30 = 0;
     memcpy(s->colors_0f4c, default_colors_0f4c, sizeof s->colors_0f4c);
     /* With a monochrome descriptor (flags bit 0 clear) 19e7:4294 also sets
        DS:0F6C..0F73 to 15; the VGA descriptor is a colour one. */
@@ -58,6 +62,8 @@ bool settings_load_par(Settings *s, const char *path)
     s->language_file[16] = '\0';
     s->color_ad6e = read16(rec + PAR_COLOR_AD6E);
     s->color_b0c6 = read16(rec + PAR_COLOR_B0C6);
+    s->color_b112 = read16(rec + PAR_COLOR_B112);
+    s->color_ac30 = read16(rec + PAR_COLOR_AC30);
     for (int i = 0; i < 28; i++)
         s->colors_0f4c[i] = read16(rec + PAR_COLORS_0F4C + 2 * i);
     return true;

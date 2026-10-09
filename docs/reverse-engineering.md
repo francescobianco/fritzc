@@ -204,8 +204,8 @@ Known record fields (offsets in the file):
 | `0x192` | 2 | `[B0C2]` | ? |
 | `0x194` | 2 | `[AD6E]` | background / menu bar colour (default: descriptor colour) |
 | `0x196` | 2 | `[B0C6]` | colour (default 0) |
-| `0x198` | 2 | `[B112]` | ? |
-| `0x19A` | 2 | `[AC30]` | ? |
+| `0x198` | 2 | `[B112]` | board frame, second ring (default: descriptor colour) |
+| `0x19A` | 2 | `[AC30]` | board frame (default 0) |
 | `0x19C` | 56 | `DS:0F4C…0F83` | colour table; entry 1 (`[0F4E]`) is the desktop hatching and the panel shadows (default `DS:0F4C`: 0..15, 10, 11, 12, 14, 15, 15, 0, 15, 0, 15, 0, 15) |
 
 Translated in `src/game/settings.c`.
@@ -249,6 +249,8 @@ Translated in `src/gui/ui_text.c`. **[verified]**
 | `293b:9fb1`, `293b:a044`, `293b:a0ce`, fonts `DS:714F` | `gfx_draw_text_p`, `gfx_draw_text`, `fonts_load` | complete for VGA |
 | `19e7:b0c4`, `19e7:2354` | `language_load`, `language_string` | reading; the in-memory pool is not emulated |
 | `0a1f:67c3`, `0a1f:65bb`, `0a1f:64b5` | `ui_message`, `ui_text_line` | complete |
+| `0000:2037` | `arrow_buttons` (desktop.c) | complete; drawn only with a mouse (`[AFB2]`, set by `0000:7d99` via int 33h) |
+| `0a1f:7d72` | `board_frame_draw` | complete |
 | `0000:2512` final menu bar and line (`0a1f:67c3(0x1C…)`, `293b:9ab2`) | `desktop_draw` | complete |
 | `19e7:4294` (colours and language only) | `settings_defaults`, `settings_load_par` | partial |
 
@@ -281,7 +283,8 @@ the DOSBox window has focus.
 
 ## 12. Next steps
 
-1. Continue `0000:2512` after `0000:05f3`: `0000:022f`, board, panels.
+1. Squares and pieces: `0a1f:78ac` → `0a1f:74ac` (empty square) and
+   `0a1f:7632` (piece); then the remaining panels of `0000:2512`.
 2. Decode the remaining `FRITZ2.PAR` fields.
 3. Annotate the Ghidra project with the names of the functions identified so far.
 4. Check whether `FRITZ2.BIN` is the engine: trace how `FRITZ2.EXE` loads it

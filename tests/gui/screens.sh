@@ -43,9 +43,9 @@ capture() {  # NAME PAR
 }
 
 # Regions reconstructed so far: menu bar, desktop pattern, outer frame,
-# message box.
+# message box, arrow buttons, board frame.
 REGIONS="0,0,640,15 5,20,11,380 612,20,635,380 5,20,635,35 0,15,640,20 0,472,640,480
-0,15,5,480 635,15,640,480 5,380,635,472"
+0,15,5,480 635,15,640,480 5,380,635,472 354,181,496,229 10,34,16,366 336,34,342,366 10,34,342,40 10,360,342,366"
 
 status=0
 for case in main:$root/dos/fritz251/FRITZ2.PAR exp-colours:$exp_par exp-deutsch:$de_par; do

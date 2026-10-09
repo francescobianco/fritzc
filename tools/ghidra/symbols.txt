@@ -29,6 +29,12 @@
 0000:05f3 desktop_frame keep
 0000:0413 board_coordinates_draw keep
 0a1f:67c3 ui_message keep
+0000:2037 arrow_buttons cdecl color h w y x
+0000:7d99 mouse_detect keep
+0a1f:7d72 board_frame_draw keep
+0a1f:78ac board_draw keep
+0a1f:74ac board_draw_empty_square keep
+0a1f:7632 board_draw_piece_square keep
 0a1f:65bb ui_text_line keep
 0a1f:64b5 ui_clear_text_area keep
 19e7:22ac message_get keep

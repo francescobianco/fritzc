@@ -1,5 +1,9 @@
 #include "desktop.h"
 
+#include <stdbool.h>
+
+#include "board.h"
+#include "font.h"
 #include "gfx.h"
 #include "layout.h"
 #include "settings.h"
@@ -41,10 +45,46 @@ static void desktop_frame(Screen *screen, const Settings *settings)
                      GFX_PATTERN_SOLID, GFX_ROP_COPY);
 }
 
+/* [AFB2], set by 0000:7d99 when a mouse driver answers int 33h. SDL always
+   provides a pointer, so the port behaves as with a mouse. */
+static const bool mouse_present = true;
+
+/* 0000:2037(colour, h, w, y, x), logical coordinates: the box with the two
+   move arrows (previous/next), drawn only when a mouse is present. The
+   arrows are tiles of font 3: 2+3 left, 0+1 right. */
+static void arrow_buttons(Screen *screen, const Settings *settings, uint8_t color,
+                          uint16_t h, uint16_t w, uint16_t y, uint16_t x)
+{
+    if (!mouse_present)
+        return;
+    uint8_t inner = (uint8_t)settings->color_b0c6;
+    x = gfx_scale_x(x);
+    y = gfx_scale_y(y);
+    w = gfx_scale_x(w);
+    h = gfx_scale_y(h);
+    gfx_fill_pattern(screen, x, y, w, h, (uint8_t)settings->color_ad6e,
+                     GFX_PATTERN_SOLID, GFX_ROP_COPY);
+    gfx_draw_rect(screen, x, y, w, h, inner, GFX_ROP_COPY);
+    gfx_draw_rect(screen, x + 2, y + 2, w - 4, h - 4, inner, GFX_ROP_COPY);
+    gfx_vline(screen, (int16_t)w / 2 + x, y + 3, h - 6, inner);
+
+    uint16_t ty = y + (int16_t)(h - 14) / 2;
+    int16_t quarter = (int16_t)w / 4;
+    static const struct { int16_t dx; uint8_t tile; } tiles[] = {
+        {-4, 2}, {4, 3}, {-4, 0}, {4, 1},
+    };
+    for (int i = 0; i < 4; i++) {
+        uint8_t pstring[2] = {1, tiles[i].tile};
+        uint16_t tx = (uint16_t)((i < 2 ? quarter : quarter * 3) + x + tiles[i].dx);
+        gfx_draw_text_p(screen, tx, ty, 3, pstring, color, 0);
+    }
+}
+
 /* 0000:2512. Translated: the background, the frame (0000:05f3) and the
-   menu bar at the end. Not yet translated, in call order: 0000:022f,
-   0a1f:7d72, 0a1f:78ac, 0000:2037, 0a1f:00a4, 0000:21c5, 19e7:a994 or the
-   0a1f:7a98 group, 0000:2372, 0000:24ee, 0000:31e5. */
+   arrow buttons (0000:2037) and the menu bar at the end. 0000:022f draws
+   nothing on the start screen; 0a1f:7d72 is board_frame_draw. Not yet
+   translated, in call order: 0a1f:78ac (squares and pieces), 0a1f:00a4, 0000:21c5, 19e7:a994 or the 0a1f:7a98
+   group, 0000:2372, 0000:24ee, 0000:31e5. */
 void desktop_draw(Screen *screen, const Settings *settings, const Language *lan)
 {
     const Layout *l = &layout_vga;
@@ -59,6 +99,8 @@ void desktop_draw(Screen *screen, const Settings *settings, const Language *lan)
                                                       : settings->color_b0c6),
                      GFX_PATTERN_DESKTOP, GFX_ROP_COPY);
     desktop_frame(screen, settings);
+    board_frame_draw(screen, settings);
+    arrow_buttons(screen, settings, (uint8_t)settings->color_b0c6, 0x23, 0xa0, 0x84, 0x18e);
 
     /* Menu bar text and the line below it. */
     ui_message(screen, settings, lan, 0x1c, settings->color_ad6e, 0, 1);

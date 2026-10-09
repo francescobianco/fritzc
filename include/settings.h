@@ -10,7 +10,9 @@ typedef struct Settings {
     uint16_t card_id;            /* [AFAE]+2: graphics card descriptor id */
     char language_file[17];      /* DS:AD5D: e.g. FENGLISH.LAN */
     uint16_t color_ad6e;         /* [AD6E]: background, menu bar */
-    uint16_t color_b0c6;         /* [B0C6] */
+    uint16_t color_b0c6;         /* [B0C6]: frames and text */
+    uint16_t color_b112;         /* [B112]: board frame, second ring */
+    uint16_t color_ac30;         /* [AC30]: board frame */
     uint16_t colors_0f4c[28];    /* DS:0F4C..0F83: colour table */
 } Settings;
 

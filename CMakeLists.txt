@@ -26,6 +26,7 @@ add_executable(fritz
     src/gui/desktop.c
     src/gui/layout.c
     src/gui/font.c
+    src/gui/board.c
     src/gui/ui_text.c
     src/game/language.c
     src/assets/exe.c
