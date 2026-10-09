@@ -1,0 +1,33 @@
+# Known FRITZ2.UNP.EXE functions, applied to the Ghidra project by Annotate.java.
+#
+# Format: SEG:OFF NAME CONVENTION [PARAM ...]
+#   SEG:OFF     image-relative address (as in docs/reverse-engineering.md)
+#   CONVENTION  pascal (far, callee pops, args pushed left to right),
+#               cdecl (far, caller pops) or keep (leave the signature alone)
+#   PARAM       parameters in source order, each NAME or NAME:byte
+# Pascal functions are declared to Ghidra as __stdcall16far with the
+# parameters reversed, which yields the same stack layout; Ghidra therefore
+# lists their arguments last-to-first.
+
+# Graphics library (segment 293b)
+293b:aa5f gfx_scale_x pascal x
+293b:aa75 gfx_scale_y pascal y
+293b:aa8b gfx_set_scale pascal x_mul x_div x_add line_div y_mul y_div y_add line_mul driver
+293b:9e44 gfx_fill_pattern pascal x y w h color pattern rop
+293b:95db gfx_draw_rect pascal x y w h color rop
+293b:9ab2 gfx_hline pascal x y w color
+293b:9cd4 gfx_vline pascal x y h color
+293b:aad3 gfx_scale_line pascal v
+293b:1f81 mouse_hide keep
+293b:1f6e mouse_show keep
+
+# User interface
+0000:2512 desktop_draw cdecl
+0000:05f3 desktop_frame keep
+0000:0413 board_coordinates_draw keep
+0000:814b init_graphics keep
+
+# Settings
+19e7:4294 settings_load cdecl reload:byte
+19e7:3ee4 settings_open cdecl mode
+0a1f:c4e0 select_card_descriptor cdecl mode p2

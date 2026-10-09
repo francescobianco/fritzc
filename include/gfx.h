@@ -24,11 +24,12 @@ enum {
     GFX_PATTERN_SOLID = 2      /* DS:7043 ff ff ... */
 };
 
-/* Scale parameters set by 293b:aa8b (DS:6F48..6F54). */
+/* Scale parameters set by 293b:aa8b (DS:6F48..6F56). */
 typedef struct GfxScale {
     uint16_t x_mul, x_div, x_add;
-    uint16_t unknown_6f4e;
+    uint16_t line_div;
     uint16_t y_mul, y_div, y_add;
+    uint16_t line_mul;
 } GfxScale;
 
 /* VGA table at DS:7478, copied to DS:0B7C by 0000:7eaf. */
@@ -37,9 +38,18 @@ extern const GfxScale gfx_scale_vga;
 void gfx_set_scale(const GfxScale *scale);
 uint16_t gfx_scale_x(uint16_t x);   /* 293b:aa5f */
 uint16_t gfx_scale_y(uint16_t y);   /* 293b:aa75 */
+uint16_t gfx_scale_line(uint16_t v); /* 293b:aad3 */
 
 /* 293b:9e44: pattern-filled rectangle, in device coordinates. */
 void gfx_fill_pattern(Screen *screen, uint16_t x, uint16_t y, uint16_t w,
                       uint16_t h, uint8_t color, uint16_t pattern, uint8_t rop);
+
+/* 293b:9ab2 and 293b:9cd4: one-pixel lines, always with GFX_ROP_COPY. */
+void gfx_hline(Screen *screen, uint16_t x, uint16_t y, uint16_t w, uint8_t color);
+void gfx_vline(Screen *screen, uint16_t x, uint16_t y, uint16_t h, uint8_t color);
+
+/* 293b:95db: rectangle outline. */
+void gfx_draw_rect(Screen *screen, uint16_t x, uint16_t y, uint16_t w,
+                   uint16_t h, uint8_t color, uint8_t rop);
 
 #endif

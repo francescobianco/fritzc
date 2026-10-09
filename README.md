@@ -33,6 +33,12 @@ build/cmake/fritz --reference build/captures/main/main.bmp   # Tab = original, D
 build/cmake/fritz --dump build/native.bmp                     # native frame, no window
 ```
 
+## Tests
+
+```sh
+tests/gui/screens.sh    # needs dos/fritz251 and DOSBox the first time
+```
+
 ## Patch experiments
 
 ```sh

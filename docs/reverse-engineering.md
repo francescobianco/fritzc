@@ -72,9 +72,26 @@ Hercules).
 - **Unpacking:** `tools/inspect/unexepack.py` produces a standard 254 880-byte
   MZ with 2 468 relocations, all pointing to valid targets. Original entry
   point `0000:8C0C`, stack `3F7D:4000`. **[verified]**
-- **Compiler:** Microsoft C (`MS Run-Time Library - Copyright (c) 1988,
-  Microsoft Corp`, MSC runtime `R6xxx` messages). No DOS extender.
-  **[verified]**
+- **Languages and toolchain.** The program is made of three parts:
+  - **UI and program logic: C, Microsoft C.** Runtime banner `MS Run-Time
+    Library - Copyright (c) 1988, Microsoft Corp`, `<<NMSG>>`/`R6xxx` runtime
+    messages, MSC startup code at the entry point (DOS version check,
+    DGROUP setup). The 1988 banner points to MSC 5.1 or QuickC 2.x
+    (MSC 6.0 says 1990). Segments `0000`, `0a1f`, `19e7` show compiler-made
+    `push bp / mov bp,sp` frames and far cdecl calls (caller pops).
+    No DOS extender. **[verified; exact compiler version open]**
+  - **Graphics library: hand-written assembly** (segment `293b`, Pascal
+    convention, per-card drivers, see §6). No third-party framework (no
+    Borland BGI, no MSC `graph.lib`). Probably ChessBase in-house code shared
+    with the ChessBase DOS program: the EXE contains `ChessBase 2.4`,
+    "Type 'EXIT' to return to ChessBase" and uses the ChessBase database
+    formats. **[verified for the code style; origin is a hypothesis]**
+  - **`FRITZ2.BIN`: assembly.** No compiler frames at all (zero
+    `push bp/mov bp,sp`, 326 near `ret`), and at `0x262f` a dispatcher on a
+    command code (0–0x12) through a 19-entry jump table: the profile of an
+    engine written in assembler and driven by numbered commands.
+    **[hypothesis: to be confirmed by tracing how the EXE calls it]**
+  - Unexplained: the data contains `p:nulf.PAS` preceded by `BW`.
 - **Segments referenced by relocations:** `0000`, `0A1F`, `19E7`, `293B`,
   `344D`, `3464`. Multiple code segments (medium or large model).
   **[verified for the segments; model to be confirmed]**
@@ -133,6 +150,21 @@ at `DS:6FA1…6FDD`, indexed by `[DS:6F58]`. **[verified]**
   Function Select value (`0` copy, `08h` AND, `10h` OR, `18h` XOR). The VGA
   driver is `293b:9ec4` → `293b:9b2c` (write mode 0 with set/reset).
   Translated in `src/gui/gfx.c`. **[verified]**
+- **Lines and rectangles.** `293b:9ab2` HLine(x, y, w, colour) and
+  `293b:9cd4` VLine(x, y, h, colour) always copy (rop 0).
+  `293b:95db` DrawRect(x, y, w, h, colour, rop) draws left, top, right, bottom
+  in this order, so with XOR the corners are inverted twice. `293b:aad3`
+  scales line thickness: `(v·[6F56] + 1) / [6F4E]` unless the two are
+  equal (VGA: 1 and 1). **[verified]**
+- **Driver selection.** The ninth `SetScale` argument goes to `[6F58]`
+  (6 is mapped to 0). VGA and EGA use driver 0 of each 3-entry dispatch
+  table (`DS:6FA1` address, `DS:6FB9` pattern fill, `DS:6FBF` row,
+  `DS:6FC5` column, …). **[verified]**
+- **Screen layout.** `0000:7eaf` (VGA) also copies per-card layout values:
+  `DS:0B8E…0B9B` ← `DS:748A` (3, 4, 5, board x 16, board y 40,
+  square 40×40), `DS:0B9C…` ← `DS:7498`, `DS:0BAA…` ← `DS:73CC`
+  (menu bar height 14), `DS:0BB0…` ← `DS:74A6`. Translated in
+  `src/gui/layout.c`. **[verified]**
 - **Patterns** `DS:7023` → eight 8×8 masks at `DS:7033…706A`; number 1
   (`88 22…`) is the desktop background. **[verified by patch]**
 
@@ -179,13 +211,15 @@ Translated in `src/game/settings.c`.
 |---|---|---|
 | `293b:aa5f`, `293b:aa75`, `293b:aa8b` | `gfx_scale_x/y`, `gfx_set_scale` | complete |
 | `293b:9e44` (VGA driver only) | `gfx_fill_pattern` | complete for VGA |
-| `0000:2512` up to `0000:259d` | `desktop_draw` | partial (frames and panels from `0000:05f3` missing) |
+| `293b:9ab2`, `293b:9cd4`, `293b:95db`, `293b:aad3` | `gfx_hline`, `gfx_vline`, `gfx_draw_rect`, `gfx_scale_line` | complete for VGA |
+| `0000:2512` up to the call of `0000:05f3` | `desktop_draw` | complete; the calls after `05f3` (board, panels, menu) are missing |
+| `0000:05f3` up to `0000:0820` | `desktop_frame` | outer frame and message box; board coordinates (`0000:0413`) and box text missing |
 | `19e7:4294` (colour fields only) | `settings_defaults`, `settings_load_par` | partial |
 
 Check (`tools/compare/diff.py`): `fritz --par … --dump` matches the DOSBox
 screenshot pixel for pixel wherever the desktop is visible, with the
-original PAR and with the modified one of experiment 3. Row 476 still
-differs: it belongs to the frame drawn later.
+original PAR and with the modified one of experiment 3, including the
+outer frame and the message box. `tests/gui/screens.sh` runs these checks.
 
 ## 10. Tools
 
@@ -197,7 +231,8 @@ differs: it belongs to the frame drawn later.
 | `tools/compare/patch.py IN OUT SEG:OFF=HEX…` | Patches the unpacked EXE (for experiments) |
 | `tools/compare/dosbox-run.sh OUTDIR SECS KEYS…` | Runs Fritz on a temporary copy and collects screenshots (`ctrl+F5`); `FRITZ_EXE` replaces the executable, `FRITZ_FILES="NAME=path …"` other files |
 | `tools/compare/diff.py NATIVE.bmp CAPTURE.png [REGIONS…]` | Pixel comparison between the port and a capture |
-| `tools/ghidra/decompile.sh SEG:OFF…` | Imports the unpacked EXE into Ghidra (headless) and prints decompiled functions |
+| `tools/ghidra/decompile.sh SEG:OFF…` | Imports the unpacked EXE into Ghidra (headless), applies `tools/ghidra/symbols.txt` and prints decompiled functions |
+| `tests/gui/screens.sh` | Regression test: port vs DOSBox captures in the reconstructed regions |
 
 Example, capturing the About box:
 
@@ -210,7 +245,8 @@ the DOSBox window has focus.
 
 ## 11. Next steps
 
-1. Continue `0000:2512` from `call 0000:05f3`: frames, panels, menu bar.
+1. Extract the font and the text routines (menu bar, message box, panels).
+1. Continue `0000:2512` after `0000:05f3`: `0000:022f`, board, panels.
 2. Decode the remaining `FRITZ2.PAR` fields.
 3. Annotate the Ghidra project with the names of the functions identified so far.
 4. Check whether `FRITZ2.BIN` is the engine: trace how `FRITZ2.EXE` loads it
