@@ -6,3 +6,7 @@
 
 # IDE
 /.idea/workspace.xml
+
+# Python bytecode
+__pycache__/
+*.pyc

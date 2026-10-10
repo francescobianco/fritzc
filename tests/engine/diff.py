@@ -19,15 +19,23 @@ IGNORE = {harness.HALT_OFFSET, *harness.STACK_SCRATCH}
 
 
 class CEngine:
+    """The C Engine struct: a window pointer, the segment and 1 MB of RAM.
+    Images are full 1 MB memory snapshots of the emulator."""
+
+    RAM_OFFSET = ctypes.sizeof(ctypes.c_void_p) * 2   # after mem and segment (padded)
+
     def __init__(self, path):
         self.lib = ctypes.CDLL(path)
-        self.buf = (ctypes.c_uint8 * 0x10000)()
+        self.lib.eng_size.restype = ctypes.c_ulong
+        self.buf = (ctypes.c_uint8 * self.lib.eng_size())()
+        self.lib.eng_bind(self.buf, ctypes.c_uint16(harness.SEG))
+        self.ram_offset = len(self.buf) - 0x100000
 
     def load(self, image):
-        ctypes.memmove(self.buf, bytes(image), 0x10000)
+        ctypes.memmove(ctypes.addressof(self.buf) + self.ram_offset, bytes(image), 0x100000)
 
     def image(self):
-        return bytearray(self.buf)
+        return bytearray(self.buf)[self.ram_offset:]
 
     def __getattr__(self, name):
         fn = getattr(self.lib, name)
@@ -98,7 +106,20 @@ def collect_scripted_states(path):
 
 
 def compare(a, b):
-    return [i for i in range(0x10000) if a[i] != b[i] and i not in IGNORE]
+    """Differences between two 1 MB images, as offsets in the engine segment
+    when inside it, else as linear addresses + 0x100000."""
+    if a == b:
+        return []
+    base = harness.SEG * 16
+    out = []
+    for i in range(0x100000):
+        if a[i] != b[i]:
+            if base <= i < base + 0x10000:
+                if i - base not in IGNORE:
+                    out.append(i - base)
+            elif not harness.STACK_SEG * 16 <= i < harness.STACK_SEG * 16 + 0x10000:
+                out.append(i + 0x100000)
+    return out
 
 
 def board_squares():
@@ -115,7 +136,7 @@ def test_see(eng, c, state):
     bad = []
     calls = 0
     for si in board_squares():
-        if state[si] == 0 or state[si + 1] & 0x80:
+        if byte(state, si) == 0 or byte(state, si + 1) & 0x80:
             continue
         for di in board_squares():
             if di == si:
@@ -130,8 +151,16 @@ def test_see(eng, c, state):
     return calls, bad
 
 
+BASE = harness.SEG * 16
+
+
+def byte(image, off):
+    """Byte at offset `off` of the engine segment in a 1 MB image."""
+    return image[BASE + off]
+
+
 def word(image, off):
-    return image[off] | image[off + 1] << 8
+    return image[BASE + off] | image[BASE + off + 1] << 8
 
 
 def test_square_updates(eng, c, state):
@@ -247,7 +276,7 @@ def test_make_unmake(eng, c, state):
     calls = capture_calls(eng, state, (0x6F81, 0x719E))
     for address, regs, image in calls:
         if address == 0x719E:
-            flags = image[regs['bp'] + 0x1012]
+            flags = byte(image, regs['bp'] + 0x1012)
             MOVE_KINDS[move_kind(flags)] = MOVE_KINDS.get(move_kind(flags), 0) + 1
         harness.restore(eng, image)
         keep = {k: regs[k] for k in ('ax', 'bx', 'cx', 'dx', 'si', 'di', 'bp')}

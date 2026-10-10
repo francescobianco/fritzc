@@ -22,6 +22,7 @@ endif()
 # Engine reconstruction, also built as a shared library for the
 # differential tests against the original module (tests/engine).
 set(ENGINE_SOURCES
+    src/engine/engine.c
     src/engine/engine_memory.c
     src/engine/attacks.c
     src/engine/see.c

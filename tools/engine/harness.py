@@ -59,6 +59,9 @@ class Engine:
         self.poke16(0x8C, STUB_SEG)
 
     # --- memory helpers (offsets in the engine block) ---
+    def peek_image(self, image, off, n=1):
+        return image[SEG * 16 + off:SEG * 16 + off + n]
+
     def peek(self, off, n=1):
         return bytes(self.uc.mem_read(SEG * 16 + off, n))
 
@@ -168,11 +171,12 @@ def call_near(eng, address, regs=None, max_instructions=50_000_000):
 
 
 def snapshot(eng):
-    return bytearray(eng.uc.mem_read(SEG * 16, 0x10000))
+    """The whole conventional memory (1 MB): engine segment, hash, book."""
+    return bytearray(eng.uc.mem_read(0, 0x100000))
 
 
 def restore(eng, image):
-    eng.uc.mem_write(SEG * 16, bytes(image))
+    eng.uc.mem_write(0, bytes(image))
 
 
 def square(name):

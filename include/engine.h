@@ -5,15 +5,44 @@
 
 /* C reconstruction of the FRITZ2.BIN engine (docs/engine-analysis.md).
 
-   The engine works on one 64 KB segment: code, tables and variables share
-   it, and every routine addresses its data by fixed offsets. The C version
-   keeps that segment as `mem`, with the same offsets, so that each routine
-   can be checked against the original one on the same memory image
-   (tests/engine). Names for the offsets are introduced as their meaning
-   is established. */
+   The engine works on its own 64 KB segment: code, tables and variables
+   share it, and every routine addresses its data by fixed offsets. The hash
+   table and the opening book live in other segments, reached through ES.
+   The C version keeps the whole conventional memory (`ram`, 1 MB) with the
+   engine segment as the window `mem`, so that each routine can be checked
+   against the original one on the same memory image (tests/engine). Names
+   for the offsets are introduced as their meaning is established. */
 typedef struct Engine {
-    uint8_t mem[0x10000];
+    uint8_t *mem;              /* ram + segment × 16 */
+    uint16_t segment;
+    uint8_t ram[0x100000];
 } Engine;
+
+/* Binds the engine window to `segment` (the module's load segment). */
+void eng_bind(Engine *e, uint16_t segment);
+unsigned long eng_size(void);
+
+/* Accesses through another segment (ES). */
+static inline uint8_t eng_far_rd8(const Engine *e, uint16_t seg, uint16_t off)
+{
+    return e->ram[((uint32_t)seg * 16 + off) & 0xfffff];
+}
+
+static inline uint16_t eng_far_rd16(const Engine *e, uint16_t seg, uint16_t off)
+{
+    return (uint16_t)(eng_far_rd8(e, seg, off) | eng_far_rd8(e, seg, (uint16_t)(off + 1)) << 8);
+}
+
+static inline void eng_far_wr8(Engine *e, uint16_t seg, uint16_t off, uint8_t v)
+{
+    e->ram[((uint32_t)seg * 16 + off) & 0xfffff] = v;
+}
+
+static inline void eng_far_wr16(Engine *e, uint16_t seg, uint16_t off, uint16_t v)
+{
+    eng_far_wr8(e, seg, off, (uint8_t)v);
+    eng_far_wr8(e, seg, (uint16_t)(off + 1), (uint8_t)(v >> 8));
+}
 
 /* Registers of the routines that take and return values in registers. */
 typedef struct EngRegs {
